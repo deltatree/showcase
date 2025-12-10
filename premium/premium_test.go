@@ -275,3 +275,150 @@ func TestUILayout(t *testing.T) {
 		t.Errorf("BottomCenter.X = %d, want 640", x)
 	}
 }
+
+// TestUIState_ToggleHelp tests ToggleHelp method.
+func TestUIState_ToggleHelp(t *testing.T) {
+	ui := NewUIState()
+
+	if ui.ShowHelp {
+		t.Error("Help should be hidden initially")
+	}
+	ui.ToggleHelp()
+	if !ui.ShowHelp {
+		t.Error("ToggleHelp should show help")
+	}
+	ui.ToggleHelp()
+	if ui.ShowHelp {
+		t.Error("ToggleHelp again should hide help")
+	}
+}
+
+// TestUIState_ForceShowControls tests ForceShowControls method.
+func TestUIState_ForceShowControls(t *testing.T) {
+	ui := NewUIState()
+
+	// Hide controls first
+	for i := 0; i < 50; i++ {
+		ui.Update(0.1, false)
+	}
+	if ui.ShowControls {
+		t.Error("Controls should be hidden after inactivity")
+	}
+
+	ui.ForceShowControls()
+	if !ui.ShowControls {
+		t.Error("ForceShowControls should show controls")
+	}
+	if ui.GetControlsAlpha() != 1.0 {
+		t.Error("ForceShowControls should set alpha to 1.0")
+	}
+}
+
+// TestUILayout_TopRight tests TopRight method.
+func TestUILayout_TopRight(t *testing.T) {
+	l := NewUILayout(1280, 720)
+	x, y := l.TopRight()
+	if x != 1280-l.MarginX {
+		t.Errorf("TopRight.X = %d, want %d", x, 1280-l.MarginX)
+	}
+	if y != l.MarginY {
+		t.Errorf("TopRight.Y = %d, want %d", y, l.MarginY)
+	}
+}
+
+// TestUILayout_BottomLeft tests BottomLeft method.
+func TestUILayout_BottomLeft(t *testing.T) {
+	l := NewUILayout(1280, 720)
+	x, y := l.BottomLeft()
+	if x != l.MarginX {
+		t.Errorf("BottomLeft.X = %d, want %d", x, l.MarginX)
+	}
+	if y != 720-l.MarginY {
+		t.Errorf("BottomLeft.Y = %d, want %d", y, 720-l.MarginY)
+	}
+}
+
+// TestUILayout_BottomRight tests BottomRight method.
+func TestUILayout_BottomRight(t *testing.T) {
+	l := NewUILayout(1280, 720)
+	x, y := l.BottomRight()
+	if x != 1280-l.MarginX {
+		t.Errorf("BottomRight.X = %d, want %d", x, 1280-l.MarginX)
+	}
+	if y != 720-l.MarginY {
+		t.Errorf("BottomRight.Y = %d, want %d", y, 720-l.MarginY)
+	}
+}
+
+// TestUILayout_Center tests Center method.
+func TestUILayout_Center(t *testing.T) {
+	l := NewUILayout(1280, 720)
+	x, y := l.Center()
+	if x != 640 {
+		t.Errorf("Center.X = %d, want 640", x)
+	}
+	if y != 360 {
+		t.Errorf("Center.Y = %d, want 360", y)
+	}
+}
+
+// TestAudioManager_SetMuted tests SetMuted method.
+func TestAudioManager_SetMuted(t *testing.T) {
+	am := NewAudioManager()
+	am.SetMuted(true)
+	if !am.IsMuted() {
+		t.Error("SetMuted(true) should mute")
+	}
+	am.SetMuted(false)
+	if am.IsMuted() {
+		t.Error("SetMuted(false) should unmute")
+	}
+}
+
+// TestAudioManager_PlaySounds tests placeholder sound methods.
+func TestAudioManager_PlaySounds(t *testing.T) {
+	am := NewAudioManager()
+	// These are placeholders, should not panic
+	am.PlayAttract()
+	am.PlayRepel()
+	am.PlayTransition()
+	// Verify audio manager still functional after play calls
+	if !am.IsEnabled() {
+		t.Error("Audio should still be enabled after play calls")
+	}
+}
+
+// TestAudioManager_SetPreset tests SetPreset method.
+func TestAudioManager_SetPreset(t *testing.T) {
+	am := NewAudioManager()
+	am.SetPreset("Firework")
+	if am.currentPreset != "Firework" {
+		t.Errorf("SetPreset did not set preset, expected 'Firework', got '%s'", am.currentPreset)
+	}
+}
+
+// TestAllPalettes ensures all preset palettes are valid.
+func TestAllPalettes(t *testing.T) {
+	// Test all defined palettes exist and have valid values
+	expectedPalettes := []string{"Galaxy", "Firework", "Swarm", "Fountain", "Chaos"}
+	for _, name := range expectedPalettes {
+		p := GetPalette(name)
+		if p.Name != name {
+			t.Errorf("GetPalette(%s) returned wrong name: %s", name, p.Name)
+		}
+		// Verify glow intensity is in valid range
+		if p.GlowIntensity < 0 || p.GlowIntensity > 1 {
+			t.Errorf("%s: GlowIntensity out of range: %f", name, p.GlowIntensity)
+		}
+	}
+}
+
+// TestQualitySettings_UltraLevel tests that default returns Medium for unknown levels.
+func TestQualitySettings_UltraLevel(t *testing.T) {
+	// Test unknown quality level
+	q := GetQualitySettings(QualityLevel(99))
+	// Should fall back to a sensible default (Medium)
+	if q.MaxParticles != 7000 {
+		t.Errorf("Unknown quality level should return Medium settings, got MaxParticles=%d", q.MaxParticles)
+	}
+}

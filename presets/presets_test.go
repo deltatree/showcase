@@ -87,3 +87,47 @@ func TestExpectedPresetsExist(t *testing.T) {
 		}
 	}
 }
+
+// TestPresetPalette tests Palette method for all premium presets.
+func TestPresetPalette(t *testing.T) {
+	// Test Galaxy preset palette
+	galaxy := NewGalaxyPreset().(*galaxyPreset)
+	palette := galaxy.Palette()
+	if palette.Name == "" {
+		t.Error("Galaxy.Palette().Name is empty")
+	}
+	if palette.StartA != 255 {
+		t.Errorf("Galaxy.Palette().StartA = %d, want 255", palette.StartA)
+	}
+	if palette.EndA != 0 {
+		t.Errorf("Galaxy.Palette().EndA = %d, want 0", palette.EndA)
+	}
+
+	// Test Firework preset palette
+	firework := NewFireworkPreset().(*fireworkPreset)
+	palette = firework.Palette()
+	if palette.Name == "" {
+		t.Error("Firework.Palette().Name is empty")
+	}
+
+	// Test Swarm preset palette
+	swarm := NewSwarmPreset().(*swarmPreset)
+	palette = swarm.Palette()
+	if palette.Name == "" {
+		t.Error("Swarm.Palette().Name is empty")
+	}
+
+	// Test Fountain preset palette
+	fountain := NewFountainPreset().(*fountainPreset)
+	palette = fountain.Palette()
+	if palette.Name == "" {
+		t.Error("Fountain.Palette().Name is empty")
+	}
+
+	// Test Chaos preset palette
+	chaos := NewChaosPreset().(*chaosPreset)
+	palette = chaos.Palette()
+	if palette.Name == "" {
+		t.Error("Chaos.Palette().Name is empty")
+	}
+}

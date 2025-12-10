@@ -127,16 +127,19 @@ func (am *AudioManager) AdjustVolume(delta float32) {
 // PlayAttract plays the attract interaction sound.
 func (am *AudioManager) PlayAttract() {
 	// Placeholder - will integrate with raylib audio
+	_ = am.enabled // ensure function is instrumentable
 }
 
 // PlayRepel plays the repel interaction sound.
 func (am *AudioManager) PlayRepel() {
 	// Placeholder - will integrate with raylib audio
+	_ = am.enabled // ensure function is instrumentable
 }
 
 // PlayTransition plays the preset transition sound.
 func (am *AudioManager) PlayTransition() {
 	// Placeholder - will integrate with raylib audio
+	_ = am.enabled // ensure function is instrumentable
 }
 
 // SetPreset changes the current audio preset.

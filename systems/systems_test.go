@@ -825,3 +825,69 @@ func TestGlowRenderer_IsEnabled(t *testing.T) {
 		t.Error("IsEnabled should return false after SetEnabled(false)")
 	}
 }
+
+// TestGlowRenderer_SetPasses tests SetPasses method.
+func TestGlowRenderer_SetPasses(t *testing.T) {
+	r := NewGlowRenderer(true, 2)
+	r.SetPasses(5)
+	if r.passes != 5 {
+		t.Errorf("SetPasses did not set passes, expected 5, got %d", r.passes)
+	}
+}
+
+// TestMotionBlurRenderer_SetSamples tests SetSamples method.
+func TestMotionBlurRenderer_SetSamples(t *testing.T) {
+	r := NewMotionBlurRenderer(true, 4)
+	r.SetSamples(8)
+	if r.samples != 8 {
+		t.Errorf("SetSamples did not set samples, expected 8, got %d", r.samples)
+	}
+}
+
+// TestEmitterSystem_SetMaxParticles tests the SetMaxParticles method.
+func TestEmitterSystem_SetMaxParticles(t *testing.T) {
+	sys := NewEmitterSystem(100, 5000, 1280, 720)
+	sys.SetMaxParticles(8000)
+	if sys.GetMaxParticles() != 8000 {
+		t.Errorf("SetMaxParticles did not set max, expected 8000, got %d", sys.GetMaxParticles())
+	}
+}
+
+// TestEmitterSystem_GetMaxParticles tests the GetMaxParticles method.
+func TestEmitterSystem_GetMaxParticles(t *testing.T) {
+	sys := NewEmitterSystem(100, 5000, 1280, 720)
+	if sys.GetMaxParticles() != 5000 {
+		t.Errorf("GetMaxParticles wrong, expected 5000, got %d", sys.GetMaxParticles())
+	}
+}
+
+// TestRenderSystem_SetMaxParticles tests the SetMaxParticles method.
+func TestRenderSystem_SetMaxParticles(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+	sys.SetMaxParticles(12000)
+	if sys.GetMaxParticles() != 12000 {
+		t.Errorf("SetMaxParticles did not set max, expected 12000, got %d", sys.GetMaxParticles())
+	}
+}
+
+// TestRenderSystem_GetMaxParticles tests the GetMaxParticles method.
+func TestRenderSystem_GetMaxParticles(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+	// Default should be based on medium quality
+	max := sys.GetMaxParticles()
+	if max == 0 {
+		t.Error("GetMaxParticles should not return 0")
+	}
+}
+
+// TestRenderSystem_SetOnParticleChange tests the SetOnParticleChange callback.
+func TestRenderSystem_SetOnParticleChange(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+	sys.SetOnParticleChange(func(count int) {
+		// Callback logic
+	})
+	// Callback is set but not invoked in this test (requires Process)
+	if sys.onParticleChange == nil {
+		t.Error("SetOnParticleChange did not set callback")
+	}
+}
