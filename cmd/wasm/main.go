@@ -32,9 +32,15 @@ import (
 )
 
 const (
-	screenWidth  = 960
-	screenHeight = 540
+	// Desktop defaults
+	desktopWidth  = 960
+	desktopHeight = 540
+	// Mobile uses dynamic sizing
 )
+
+// Screen dimensions - set dynamically for mobile
+var screenWidth = desktopWidth
+var screenHeight = desktopHeight
 
 var maxParticles = 7000 // Reduced for better performance
 
@@ -134,9 +140,9 @@ type QualitySettings struct {
 }
 
 var qualityPresets = map[QualityLevel]QualitySettings{
-	QualityLow:    {MaxParticles: 3000, GlowEnabled: false, GlowPasses: 0, SpawnMult: 0.5},
-	QualityMedium: {MaxParticles: 7000, GlowEnabled: true, GlowPasses: 1, SpawnMult: 1.0},
-	QualityHigh:   {MaxParticles: 12000, GlowEnabled: true, GlowPasses: 2, SpawnMult: 1.5},
+	QualityLow:    {MaxParticles: 1500, GlowEnabled: false, GlowPasses: 0, SpawnMult: 0.3}, // Mobile-optimized
+	QualityMedium: {MaxParticles: 4000, GlowEnabled: false, GlowPasses: 0, SpawnMult: 0.7}, // No glow on medium
+	QualityHigh:   {MaxParticles: 8000, GlowEnabled: true, GlowPasses: 1, SpawnMult: 1.0},
 }
 
 // AudioEngine handles Web Audio API for calming ambient sound effects
@@ -374,7 +380,34 @@ func NewGame() *Game {
 		isMobile = contains(ua, "Mobile") || contains(ua, "Android") || contains(ua, "iPhone") || contains(ua, "iPad")
 	}
 
-	// Default quality is MEDIUM for best balance
+	// Set screen size based on device
+	if isMobile {
+		// Get actual screen dimensions from browser
+		window := js.Global().Get("window")
+		if !window.IsUndefined() {
+			w := window.Get("innerWidth").Int()
+			h := window.Get("innerHeight").Int()
+			// Use full width, reasonable height for mobile
+			screenWidth = w
+			if screenWidth > 480 {
+				screenWidth = 480 // Cap for performance
+			}
+			screenHeight = int(float64(screenWidth) * 0.75) // 4:3 aspect for mobile
+			if screenHeight > h-150 {
+				screenHeight = h - 150 // Leave room for controls
+			}
+		} else {
+			screenWidth = 360
+			screenHeight = 270
+		}
+		// Reduce max particles for mobile
+		maxParticles = 2000
+	} else {
+		screenWidth = desktopWidth
+		screenHeight = desktopHeight
+	}
+
+	// Default quality based on device
 	defaultQuality := QualityMedium
 	if isMobile {
 		defaultQuality = QualityLow // Mobile gets Low for performance
@@ -384,7 +417,7 @@ func NewGame() *Game {
 		particles:       make([]Particle, maxParticles),
 		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		currentPreset:   0,
-		showDebug:       !isMobile, // Hide debug on mobile by default
+		showDebug:       false, // Hide debug by default
 		lockedMode:      0,
 		audio:           NewAudioEngine(),
 		quality:         defaultQuality,
@@ -419,29 +452,31 @@ func (g *Game) spawnParticle() {
 
 	preset := g.preset
 	var x, y float32
+	sw := float32(screenWidth)
+	sh := float32(screenHeight)
 
 	switch preset.SpawnPattern {
 	case "center":
-		x = screenWidth/2 + (g.rng.Float32()-0.5)*100
-		y = screenHeight/2 + (g.rng.Float32()-0.5)*100
+		x = sw/2 + (g.rng.Float32()-0.5)*100
+		y = sh/2 + (g.rng.Float32()-0.5)*100
 	case "bottom":
-		x = screenWidth/2 + (g.rng.Float32()-0.5)*200
-		y = screenHeight - 50
+		x = sw/2 + (g.rng.Float32()-0.5)*200
+		y = sh - 50
 	case "edges":
 		side := g.rng.Intn(4)
 		switch side {
 		case 0:
-			x, y = g.rng.Float32()*screenWidth, 0
+			x, y = g.rng.Float32()*sw, 0
 		case 1:
-			x, y = g.rng.Float32()*screenWidth, screenHeight
+			x, y = g.rng.Float32()*sw, sh
 		case 2:
-			x, y = 0, g.rng.Float32()*screenHeight
+			x, y = 0, g.rng.Float32()*sh
 		case 3:
-			x, y = screenWidth, g.rng.Float32()*screenHeight
+			x, y = sw, g.rng.Float32()*sh
 		}
 	default:
-		x = g.rng.Float32() * screenWidth
-		y = g.rng.Float32() * screenHeight
+		x = g.rng.Float32() * sw
+		y = g.rng.Float32() * sh
 	}
 
 	vx := preset.MinVel + g.rng.Float32()*(preset.MaxVel-preset.MinVel)
@@ -636,16 +671,18 @@ func (g *Game) Update() error {
 		p.X += p.VX * dt
 		p.Y += p.VY * dt
 
+		sw := float32(screenWidth)
+		sh := float32(screenHeight)
 		if p.X < 0 {
-			p.X = screenWidth
+			p.X = sw
 		}
-		if p.X > screenWidth {
+		if p.X > sw {
 			p.X = 0
 		}
 		if p.Y < 0 {
-			p.Y = screenHeight
+			p.Y = sh
 		}
-		if p.Y > screenHeight {
+		if p.Y > sh {
 			p.Y = 0
 		}
 
@@ -815,78 +852,185 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) drawMobileUI(screen *ebiten.Image) {
-	// Preset buttons at bottom
-	btnWidth := 50
-	btnHeight := 40
-	startX := screenWidth/2 - (len(presets)*btnWidth)/2
-	y := screenHeight - btnHeight - 5
+	// === MOBILE-OPTIMIZED UI ===
+	// Large touch-friendly buttons (min 60px touch target as per iOS guidelines)
 
-	for i, p := range presets {
-		x := startX + i*btnWidth
-		btnCol := color.RGBA{60, 60, 80, 200}
-		if i == g.currentPreset {
-			btnCol = color.RGBA{100, 100, 200, 255}
-		}
+	btnSize := 56 // Touch-friendly size
+	padding := 8
 
-		// Draw button background
-		for dy := 0; dy < btnHeight; dy++ {
-			for dx := 0; dx < btnWidth-2; dx++ {
-				screen.Set(x+dx, y+dy, btnCol)
-			}
-		}
-
-		// Check if button is tapped
-		for _, tid := range g.touchIDs {
-			tx, ty := ebiten.TouchPosition(tid)
-			if tx >= x && tx < x+btnWidth && ty >= y && ty < y+btnHeight {
-				g.switchPreset(i)
-			}
-		}
-
-		// Button label (first letter)
-		label := string(p.Name[0])
-		ebitenutil.DebugPrintAt(screen, label, x+btnWidth/2-4, y+btnHeight/2-8)
-	}
-
-	// Quality button top-right
-	qx, qy := screenWidth-60, 10
-	qCol := color.RGBA{60, 60, 80, 200}
-	for dy := 0; dy < 30; dy++ {
-		for dx := 0; dx < 50; dx++ {
-			screen.Set(qx+dx, qy+dy, qCol)
+	// --- TOP BAR: Quality + Mute + Preset Name ---
+	topBarHeight := btnSize + padding*2
+	topBarCol := color.RGBA{20, 20, 30, 220}
+	for y := 0; y < topBarHeight; y++ {
+		for x := 0; x < screenWidth; x++ {
+			screen.Set(x, y, topBarCol)
 		}
 	}
-	ebitenutil.DebugPrintAt(screen, g.quality.String()[:1], qx+20, qy+8)
 
-	// Check quality tap
+	// Quality button (top-left)
+	qx, qy := padding, padding
+	g.drawTouchButton(screen, qx, qy, btnSize, btnSize,
+		g.quality.String()[:1], color.RGBA{80, 80, 120, 255}, false)
+
 	for _, tid := range g.touchIDs {
 		tx, ty := ebiten.TouchPosition(tid)
-		if tx >= qx && tx < qx+50 && ty >= qy && ty < qy+30 {
+		if tx >= qx && tx < qx+btnSize && ty >= qy && ty < qy+btnSize {
 			g.cycleQuality()
 		}
 	}
 
-	// Mute button
-	mx, my := screenWidth-120, 10
-	mCol := color.RGBA{60, 60, 80, 200}
-	for dy := 0; dy < 30; dy++ {
-		for dx := 0; dx < 50; dx++ {
-			screen.Set(mx+dx, my+dy, mCol)
-		}
-	}
-	mLabel := "🔊"
-	if g.audio.IsMuted() {
-		mLabel = "🔇"
-	}
-	ebitenutil.DebugPrintAt(screen, mLabel, mx+18, my+8)
+	// Mute button (next to quality)
+	mx := qx + btnSize + padding
+	mLabel := "♪"
+	mActive := !g.audio.IsMuted()
+	g.drawTouchButton(screen, mx, qy, btnSize, btnSize, mLabel,
+		color.RGBA{80, 80, 120, 255}, mActive)
 
-	// Check mute tap
 	for _, tid := range g.touchIDs {
 		tx, ty := ebiten.TouchPosition(tid)
-		if tx >= mx && tx < mx+50 && ty >= my && ty < my+30 {
+		if tx >= mx && tx < mx+btnSize && ty >= qy && ty < qy+btnSize {
 			g.audio.ToggleMute()
 		}
 	}
+
+	// Preset name (center)
+	presetName := g.preset.Name
+	nameX := screenWidth/2 - len(presetName)*4
+	ebitenutil.DebugPrintAt(screen, presetName, nameX, qy+btnSize/2-8)
+
+	// Particle count (right side)
+	countStr := fmt.Sprintf("%d", g.activeCount)
+	ebitenutil.DebugPrintAt(screen, countStr, screenWidth-len(countStr)*8-padding, qy+btnSize/2-8)
+
+	// --- BOTTOM BAR: Preset Selection ---
+	bottomBarHeight := btnSize + padding*2
+	bottomY := screenHeight - bottomBarHeight
+	bottomBarCol := color.RGBA{20, 20, 30, 220}
+	for y := bottomY; y < screenHeight; y++ {
+		for x := 0; x < screenWidth; x++ {
+			screen.Set(x, y, bottomBarCol)
+		}
+	}
+
+	// Preset buttons - evenly distributed
+	presetCount := len(presets)
+	totalButtonWidth := presetCount*btnSize + (presetCount-1)*padding
+	startX := (screenWidth - totalButtonWidth) / 2
+	btnY := bottomY + padding
+
+	presetColors := []color.RGBA{
+		{100, 150, 255, 255}, // Galaxy - blue
+		{255, 180, 50, 255},  // Firework - orange
+		{50, 255, 100, 255},  // Swarm - green
+		{100, 200, 255, 255}, // Fountain - cyan
+		{255, 80, 80, 255},   // Chaos - red
+	}
+
+	for i, p := range presets {
+		x := startX + i*(btnSize+padding)
+		isActive := i == g.currentPreset
+
+		btnColor := presetColors[i]
+		if !isActive {
+			// Dim inactive buttons
+			btnColor.R = btnColor.R / 2
+			btnColor.G = btnColor.G / 2
+			btnColor.B = btnColor.B / 2
+		}
+
+		// First letter of preset name
+		label := string(p.Name[0])
+		g.drawTouchButton(screen, x, btnY, btnSize, btnSize, label, btnColor, isActive)
+
+		// Check tap
+		for _, tid := range g.touchIDs {
+			tx, ty := ebiten.TouchPosition(tid)
+			if tx >= x && tx < x+btnSize && ty >= btnY && ty < btnY+btnSize {
+				g.switchPreset(i)
+			}
+		}
+	}
+
+	// --- CENTER: Interaction hint (only when not interacting) ---
+	if g.lockedMode == 0 && g.attractorMass == 0 {
+		// Show subtle hint
+		hintY := screenHeight/2 + 60
+		hint := "Tap: Attract | 2-Finger: Repel"
+		hintX := screenWidth/2 - len(hint)*4
+		// Semi-transparent background for hint
+		for dy := -4; dy < 20; dy++ {
+			for dx := -8; dx < len(hint)*8+8; dx++ {
+				px, py := hintX+dx, hintY+dy
+				if px >= 0 && px < screenWidth && py >= 0 && py < screenHeight {
+					screen.Set(px, py, color.RGBA{0, 0, 0, 80})
+				}
+			}
+		}
+		ebitenutil.DebugPrintAt(screen, hint, hintX, hintY)
+	}
+
+	// --- LOCK/REPEL indicator ---
+	if g.lockedMode != 0 {
+		mode := "[ATTRACT]"
+		modeCol := color.RGBA{100, 255, 100, 255}
+		if g.lockedMode == -1 {
+			mode = "[REPEL]"
+			modeCol = color.RGBA{255, 100, 100, 255}
+		}
+		modeX := screenWidth/2 - len(mode)*4
+		modeY := topBarHeight + 10
+
+		// Background
+		for dy := -2; dy < 18; dy++ {
+			for dx := -4; dx < len(mode)*8+4; dx++ {
+				px, py := modeX+dx, modeY+dy
+				if px >= 0 && px < screenWidth && py >= 0 && py < screenHeight {
+					screen.Set(px, py, color.RGBA{modeCol.R / 4, modeCol.G / 4, modeCol.B / 4, 200})
+				}
+			}
+		}
+		ebitenutil.DebugPrintAt(screen, mode, modeX, modeY)
+	}
+}
+
+// drawTouchButton draws a touch-friendly button with rounded appearance
+func (g *Game) drawTouchButton(screen *ebiten.Image, x, y, w, h int, label string, col color.RGBA, active bool) {
+	// Button background
+	bgCol := col
+	if active {
+		// Brighter when active
+		bgCol.R = min(255, bgCol.R+40)
+		bgCol.G = min(255, bgCol.G+40)
+		bgCol.B = min(255, bgCol.B+40)
+	}
+
+	// Draw rounded-ish button (simple corners cut)
+	corner := 4
+	for dy := 0; dy < h; dy++ {
+		for dx := 0; dx < w; dx++ {
+			// Skip corners for rounded effect
+			inCorner := (dx < corner && dy < corner) ||
+				(dx >= w-corner && dy < corner) ||
+				(dx < corner && dy >= h-corner) ||
+				(dx >= w-corner && dy >= h-corner)
+			if !inCorner || (dx+dy >= corner && w-1-dx+dy >= corner && dx+h-1-dy >= corner && w-1-dx+h-1-dy >= corner) {
+				screen.Set(x+dx, y+dy, bgCol)
+			}
+		}
+	}
+
+	// Active indicator (bottom border)
+	if active {
+		for dx := corner; dx < w-corner; dx++ {
+			screen.Set(x+dx, y+h-2, color.RGBA{255, 255, 255, 255})
+			screen.Set(x+dx, y+h-1, color.RGBA{255, 255, 255, 255})
+		}
+	}
+
+	// Center label
+	labelX := x + w/2 - len(label)*4
+	labelY := y + h/2 - 8
+	ebitenutil.DebugPrintAt(screen, label, labelX, labelY)
 }
 
 // Fast circle drawing using Ebitengine's optimized methods

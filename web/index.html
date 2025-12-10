@@ -43,7 +43,31 @@
             padding: 1.5rem 1rem;
             background: linear-gradient(180deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
             border-bottom: 1px solid rgba(255,255,255,0.05);
-        }        
+        }
+        
+        /* Mobile header: compact */
+        @media (max-width: 768px) {
+            header {
+                padding: 0.75rem 0.5rem;
+            }
+            .logo {
+                font-size: 1.4rem !important;
+            }
+            .tagline {
+                font-size: 0.75rem !important;
+                display: none; /* Hide on very small screens */
+            }
+            .header-links {
+                display: none; /* Hide links on mobile - focus on the demo */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header {
+                padding: 0.5rem;
+            }
+        }
+        
         .logo {
             font-size: 2rem;
             font-weight: 700;
@@ -83,7 +107,15 @@
             align-items: center;
             padding: 1rem;
             background: var(--bg-secondary);
-            min-height: 500px;
+            min-height: 300px;
+        }
+        
+        /* Mobile-specific canvas container */
+        @media (max-width: 768px) {
+            .canvas-container {
+                padding: 0.5rem;
+                min-height: auto;
+            }
         }
         
         #game-container {
@@ -97,11 +129,22 @@
             background: #0a0a14;
             /* Let canvas define size naturally */
             display: inline-block;
+            max-width: 100%;
         }
         
         #game-container canvas {
             display: block;
             /* Don't scale canvas - it breaks mouse coordinates */
+            max-width: 100%;
+            height: auto;
+        }
+        
+        /* Mobile: Full-width canvas */
+        @media (max-width: 768px) {
+            #game-container {
+                border-radius: 8px;
+                box-shadow: 0 0 30px rgba(102, 126, 234, 0.15);
+            }
         }
         
         /* Loading State */
@@ -176,6 +219,19 @@
             background: var(--bg-primary);
             padding: 1.5rem;
             border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        /* Hide controls panel on mobile - controls are in canvas */
+        @media (max-width: 768px) {
+            .controls-panel {
+                padding: 0.75rem;
+            }
+            .controls-title {
+                font-size: 0.75rem !important;
+            }
+            .slider-container {
+                display: none; /* Hide sliders on mobile */
+            }
         }
         
         .controls-content {
