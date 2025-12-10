@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Particle Symphony - ECS Showcase</title>
+    <title>🎆 Particle Symphony - ECS Showcase</title>
     <style>
         * {
             margin: 0;
@@ -11,307 +11,410 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --accent-1: #667eea;
+            --accent-2: #764ba2;
+            --accent-3: #f093fb;
+            --text-primary: #ffffff;
+            --text-secondary: #888;
+            --text-muted: #555;
+        }
+        
         body {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-            color: #fff;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             min-height: 100vh;
-            padding: 2rem;
+            overflow-x: hidden;
         }
         
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        
+        /* Header */
         header {
             text-align: center;
-            margin-bottom: 3rem;
+            padding: 1.5rem 1rem;
+            background: linear-gradient(180deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
         
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-1) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            display: inline-block;
         }
         
         .tagline {
-            font-size: 1.2rem;
-            color: #888;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
         }
         
-        .hero-image {
-            width: 100%;
-            max-width: 800px;
-            height: 400px;
-            margin: 2rem auto;
-            background: linear-gradient(45deg, #1a1a2e, #16213e);
-            border-radius: 16px;
-            border: 1px solid #333;
+        .header-links {
+            margin-top: 0.75rem;
+        }
+        
+        .header-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 0.75rem;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        
+        .header-links a:hover {
+            color: var(--accent-1);
+        }
+        
+        /* Canvas Container */
+        .canvas-container {
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            min-height: calc(100vh - 280px);
+        }
+        
+        #game-container {
             position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-image::before {
-            content: '';
-            position: absolute;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(102, 126, 234, 0.3) 0%, transparent 30%),
-                radial-gradient(circle at 80% 70%, rgba(118, 75, 162, 0.3) 0%, transparent 30%),
-                radial-gradient(circle at 50% 50%, rgba(240, 147, 251, 0.2) 0%, transparent 40%);
-            animation: float 10s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(-10%, -10%) rotate(0deg); }
-            50% { transform: translate(10%, 10%) rotate(180deg); }
-        }
-        
-        .hero-image span {
-            position: relative;
-            z-index: 1;
-            font-size: 1.5rem;
-            color: #666;
-        }
-        
-        .section {
-            background: rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: #667eea;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-        }
-        
-        .feature {
-            background: rgba(255,255,255,0.03);
-            padding: 1.5rem;
             border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 60px rgba(102, 126, 234, 0.2),
+                0 0 120px rgba(118, 75, 162, 0.1);
             border: 1px solid rgba(255,255,255,0.1);
         }
         
-        .feature h3 {
-            color: #f093fb;
-            margin-bottom: 0.5rem;
+        canvas {
+            display: block;
         }
         
-        .feature p {
-            color: #aaa;
-            font-size: 0.9rem;
+        /* Loading State */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.5s ease-out;
+            min-width: 640px;
+            min-height: 360px;
+        }
+        
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(102, 126, 234, 0.2);
+            border-top-color: var(--accent-1);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .loading-subtext {
+            margin-top: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        /* Error State */
+        .error-message {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            min-width: 640px;
+            min-height: 360px;
+            background: var(--bg-primary);
+        }
+        
+        .error-message h2 {
+            color: #ff6b6b;
+            margin-bottom: 1rem;
+        }
+        
+        .error-message p {
+            color: var(--text-secondary);
+        }
+        
+        /* Controls Panel */
+        .controls-panel {
+            background: var(--bg-primary);
+            padding: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .controls-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .controls-title {
+            text-align: center;
+            color: var(--accent-1);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
         }
         
         .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             gap: 1rem;
         }
         
         .control-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.03);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
         
         kbd {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
             font-family: monospace;
-            font-weight: bold;
-            min-width: 60px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            min-width: 36px;
             text-align: center;
         }
         
-        .install-box {
-            background: #111;
-            border-radius: 8px;
-            padding: 1.5rem;
-            font-family: monospace;
-            overflow-x: auto;
+        .control-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
         }
         
-        .install-box code {
-            color: #4ade80;
-        }
-        
-        .btn {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            margin-right: 1rem;
+        /* Preset Buttons */
+        .presets-row {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
             margin-top: 1rem;
-            transition: transform 0.2s, box-shadow 0.2s;
+            flex-wrap: wrap;
         }
         
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        .preset-badge {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            color: var(--accent-1);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: default;
         }
         
-        .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
+        /* Footer */
         footer {
             text-align: center;
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 1px solid #333;
-            color: #666;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        footer p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
         }
         
         footer a {
-            color: #667eea;
+            color: var(--accent-1);
             text-decoration: none;
+            transition: color 0.2s;
         }
         
-        .tech-stack {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 1rem;
+        footer a:hover {
+            color: var(--accent-3);
         }
         
-        .tech-item {
-            text-align: center;
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 1.5rem;
+            }
+            
+            .canvas-container {
+                padding: 0.5rem;
+            }
+            
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            .controls-grid {
+                gap: 0.5rem;
+            }
+            
+            .control-item {
+                padding: 0.4rem 0.7rem;
+            }
+            
+            .loading-overlay, .error-message {
+                min-width: 100%;
+                min-height: 300px;
+            }
         }
         
-        .tech-item img {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 0.5rem;
+        /* Glow animation for logo */
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(102, 126, 234, 0.3)); }
+            50% { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.5)); }
+        }
+        
+        .logo {
+            animation: glow 3s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🎆 Particle Symphony</h1>
-            <p class="tagline">An Entity-Component-System Particle Simulator Showcase</p>
-        </header>
-        
-        <div class="hero-image">
-            <span>Interactive Particle Simulation</span>
+    <header>
+        <div class="logo">🎆 Particle Symphony</div>
+        <p class="tagline">Interactive ECS Particle Simulator in Go + WebAssembly</p>
+        <div class="header-links">
+            <a href="https://github.com/deltatree/showcase" target="_blank">📦 GitHub</a>
+            <a href="https://github.com/andygeiss/ecs" target="_blank">⚡ ECS Framework</a>
+            <a href="https://ebitengine.org" target="_blank">🎮 Ebitengine</a>
         </div>
-        
-        <div class="section">
-            <h2>🚀 Quick Start</h2>
-            <div class="install-box">
-                <code>git clone https://github.com/deltatree/showcase.git</code><br>
-                <code>cd showcase</code><br>
-                <code>go build -o particle-symphony .</code><br>
-                <code>./particle-symphony</code>
+    </header>
+    
+    <div class="canvas-container">
+        <div id="game-container">
+            <div class="loading-overlay" id="loading">
+                <div class="spinner"></div>
+                <p class="loading-text">Initializing Particle Symphony...</p>
+                <p class="loading-subtext">Loading WebAssembly module</p>
             </div>
-            <a href="https://github.com/deltatree/showcase" class="btn">View on GitHub</a>
-            <a href="https://github.com/deltatree/showcase/releases" class="btn btn-secondary">Download Release</a>
-        </div>
-        
-        <div class="section">
-            <h2>✨ Features</h2>
-            <div class="features">
-                <div class="feature">
-                    <h3>🎯 ECS Architecture</h3>
-                    <p>Clean Entity-Component-System design using andygeiss/ecs framework</p>
-                </div>
-                <div class="feature">
-                    <h3>🌌 5 Presets</h3>
-                    <p>Galaxy, Firework, Swarm, Fountain, and Chaos particle effects</p>
-                </div>
-                <div class="feature">
-                    <h3>🖱️ Interactive</h3>
-                    <p>Mouse-based gravity attraction and repulsion with lock mode</p>
-                </div>
-                <div class="feature">
-                    <h3>⚡ High Performance</h3>
-                    <p>Handles 10,000+ particles at 60 FPS with smooth physics</p>
-                </div>
-                <div class="feature">
-                    <h3>🎨 Visual Effects</h3>
-                    <p>Color gradients, size interpolation, and lifetime-based fading</p>
-                </div>
-                <div class="feature">
-                    <h3>🔧 Configurable</h3>
-                    <p>JSON configuration for window, physics, and particle settings</p>
-                </div>
+            <div class="error-message" id="error">
+                <h2>❌ WebAssembly Error</h2>
+                <p id="error-text">Failed to load the application.</p>
+                <p style="margin-top: 1rem;">Please ensure your browser supports WebAssembly.</p>
             </div>
         </div>
-        
-        <div class="section">
-            <h2>🎮 Controls</h2>
+    </div>
+    
+    <div class="controls-panel">
+        <div class="controls-content">
+            <div class="controls-title">🎮 Controls</div>
             <div class="controls-grid">
                 <div class="control-item">
                     <kbd>1-5</kbd>
-                    <span>Switch Presets</span>
+                    <span class="control-label">Switch Presets</span>
                 </div>
                 <div class="control-item">
                     <kbd>LMB</kbd>
-                    <span>Attract Particles</span>
+                    <span class="control-label">Attract</span>
                 </div>
                 <div class="control-item">
                     <kbd>RMB</kbd>
-                    <span>Repel Particles</span>
+                    <span class="control-label">Repel</span>
                 </div>
                 <div class="control-item">
-                    <kbd>2x Click</kbd>
-                    <span>Lock Attraction/Repulsion</span>
+                    <kbd>2×</kbd>
+                    <span class="control-label">Lock Mode</span>
                 </div>
                 <div class="control-item">
                     <kbd>F3</kbd>
-                    <span>Toggle Debug Overlay</span>
-                </div>
-                <div class="control-item">
-                    <kbd>ESC</kbd>
-                    <span>Exit Application</span>
+                    <span class="control-label">Toggle Debug</span>
                 </div>
             </div>
-        </div>
-        
-        <div class="section">
-            <h2>🛠️ Tech Stack</h2>
-            <div class="tech-stack">
-                <div class="tech-item">
-                    <div style="font-size: 2rem;">🐹</div>
-                    <div>Go 1.23</div>
-                </div>
-                <div class="tech-item">
-                    <div style="font-size: 2rem;">⚡</div>
-                    <div>andygeiss/ecs</div>
-                </div>
-                <div class="tech-item">
-                    <div style="font-size: 2rem;">🎮</div>
-                    <div>raylib-go</div>
-                </div>
+            <div class="presets-row">
+                <span class="preset-badge">1️⃣ Galaxy</span>
+                <span class="preset-badge">2️⃣ Firework</span>
+                <span class="preset-badge">3️⃣ Swarm</span>
+                <span class="preset-badge">4️⃣ Fountain</span>
+                <span class="preset-badge">5️⃣ Chaos</span>
             </div>
         </div>
-        
-        <footer>
-            <p>Built with ❤️ using <a href="https://github.com/andygeiss/ecs">andygeiss/ecs</a> & <a href="https://github.com/gen2brain/raylib-go">raylib-go</a></p>
-            <p style="margin-top: 0.5rem;">© 2025 Particle Symphony</p>
-        </footer>
     </div>
+    
+    <footer>
+        <p>
+            Built with ❤️ using 
+            <a href="https://github.com/andygeiss/ecs" target="_blank">andygeiss/ecs</a> & 
+            <a href="https://ebitengine.org" target="_blank">Ebitengine</a>
+        </p>
+        <p style="margin-top: 0.5rem;">
+            <a href="https://github.com/deltatree/showcase" target="_blank">View Source on GitHub</a> 
+            • © 2025 Particle Symphony
+        </p>
+    </footer>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        // Polyfill for older browsers
+        if (!WebAssembly.instantiateStreaming) {
+            WebAssembly.instantiateStreaming = async (resp, importObject) => {
+                const source = await (await resp).arrayBuffer();
+                return await WebAssembly.instantiate(source, importObject);
+            };
+        }
+
+        const go = new Go();
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const errorText = document.getElementById('error-text');
+
+        async function init() {
+            try {
+                const result = await WebAssembly.instantiateStreaming(
+                    fetch("particle-symphony.wasm"),
+                    go.importObject
+                );
+                
+                // Hide loading overlay
+                loadingEl.classList.add('hidden');
+                
+                // Run the Go WASM
+                go.run(result.instance);
+                
+            } catch (err) {
+                console.error('WASM Load Error:', err);
+                loadingEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                errorText.textContent = err.message || 'Unknown error occurred';
+            }
+        }
+
+        // Start loading
+        init();
+
+        // Prevent context menu on right-click (for RMB repel)
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                e.preventDefault();
+            }
+        });
+    </script>
 </body>
 </html>

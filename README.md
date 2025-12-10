@@ -1,18 +1,20 @@
 # Particle Symphony 🎵✨
 
-An Entity Component System (ECS) showcase demonstrating beautiful particle simulations in Go using the Ebitengine game engine.
+[![Deploy to GitHub Pages](https://github.com/deltatree/showcase/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/deltatree/showcase/actions/workflows/deploy-pages.yml)
+
+An Entity Component System (ECS) showcase demonstrating beautiful particle simulations in Go.
 
 ## 🌐 Live Demo
 
-**[View the Web Showcase →](https://deltatree.github.io/showcase/)**
+**[🎆 Try it in your Browser →](https://deltatree.github.io/showcase/)**
+
+No installation required! The web version runs entirely in WebAssembly.
 
 ## 🚀 Quick Start
 
-### Prerequisites
-- Go 1.21+
-- A graphics environment (for running locally)
+### Native Version (raylib)
 
-### Build & Run
+For the best performance, run the native version:
 
 ```bash
 # Clone the repository
@@ -23,17 +25,30 @@ cd showcase
 go build -o particle-symphony . && ./particle-symphony
 ```
 
+### WebAssembly Version (Ebitengine)
+
+Build the WASM version locally:
+
+```bash
+./build-wasm.sh
+cd web && python3 -m http.server 8080
+# Open http://localhost:8080
+```
+
 ## 🎮 Controls
 
 | Key | Action |
 |-----|--------|
-| `1` | Fountain Preset |
+| `1` | Galaxy Preset |
 | `2` | Firework Preset |
-| `3` | Galaxy Preset |
-| `4` | Swarm Preset |
+| `3` | Swarm Preset |
+| `4` | Fountain Preset |
 | `5` | Chaos Preset |
-| `Space` | Toggle Physics |
-| `ESC` | Exit |
+| `LMB` | Attract Particles |
+| `RMB` | Repel Particles |
+| `2× Click` | Lock Attract/Repel |
+| `F3` | Toggle Debug Overlay |
+| `ESC` | Exit (Native only) |
 
 ## ✨ Features
 
