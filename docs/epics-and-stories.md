@@ -7,9 +7,9 @@ project_name: 'showcase'
 user_name: 'Deltatree'
 date: '2025-12-10'
 yolo_mode: true
-totalEpics: 8
-totalStories: 35
-estimatedSprints: 5
+totalEpics: 9
+totalStories: 43
+estimatedSprints: 6
 ---
 
 # Epics & User Stories - Particle Symphony
@@ -25,10 +25,10 @@ estimatedSprints: 5
 
 | Metrik | Wert |
 |--------|------|
-| **Epics** | 8 |
-| **User Stories** | 35 |
-| **Story Points (geschätzt)** | 127 |
-| **Sprints (geschätzt)** | 5 |
+| **Epics** | 9 |
+| **User Stories** | 43 |
+| **Story Points (geschätzt)** | 159 |
+| **Sprints (geschätzt)** | 6 |
 
 ### Epic-Übersicht
 
@@ -42,6 +42,7 @@ estimatedSprints: 5
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD |
 | E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST |
 | E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST |
+| E-009 | Premium Experience 🔥 | 8 | 32 | 🟡 SHOULD |
 
 ---
 
@@ -1601,12 +1602,12 @@ The project has been actively developed and maintained, with comprehensive docum
 
 # Aktualisierte Übersicht
 
-| Metrik | Alt | Neu |
-|--------|-----|-----|
-| **Epics** | 7 | 8 |
-| **User Stories** | 28 | 35 |
-| **Story Points (geschätzt)** | 102 | 127 |
-| **Sprints (geschätzt)** | 4 | 5 |
+| Metrik | Wert |
+|--------|------|
+| **Epics** | 9 |
+| **User Stories** | 43 |
+| **Story Points (geschätzt)** | 159 |
+| **Sprints (geschätzt)** | 6 |
 
 ### Epic-Übersicht (aktualisiert)
 
@@ -1619,7 +1620,8 @@ The project has been actively developed and maintained, with comprehensive docum
 | E-005 | Preset-System | 4 | 13 | 🟡 SHOULD |
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD |
 | E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST |
-| **E-008** | **Awesome-Go Listing** | **7** | **25** | **🔴 MUST** |
+| E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST |
+| **E-009** | **Premium Experience 🔥** | **8** | **32** | **🟡 SHOULD** | |
 
 ---
 
@@ -1719,4 +1721,615 @@ Coverage: https://app.codecov.io/gh/deltatree/showcase
 
 ---
 
-**🚀 YOLO MODE COMPLETE - 35 STORIES READY FOR IMPLEMENTATION!**
+**🚀 YOLO MODE COMPLETE - 43 STORIES READY FOR IMPLEMENTATION!**
+
+---
+
+# Epic E-009: Premium Experience 🔥
+
+**Beschreibung:** Der ultimative WOW-Faktor! Geile Grafiken, wunderschöner Sound, butterweiche Animationen und eine UX die süchtig macht. Dieser Epic macht aus einem guten Showcase ein UNVERGESSLICHES Erlebnis.
+
+**Business Value:** 
+- **Differenzierung:** Hebt sich deutlich von Standard-Demos ab
+- **Viralität:** Benutzer teilen optisch beeindruckende Anwendungen
+- **Professionalität:** Zeigt, dass Go für hochqualitative visuelle Anwendungen geeignet ist
+- **Emotionale Bindung:** Sound + Grafik = Immersion = Erinnerungswert
+
+**Akzeptanzkriterien:**
+- Partikel-Rendering wirkt "Premium" mit Glow, Blur und Layering
+- Ambient Sound-Design sorgt für Atmosphäre
+- Interaktions-Feedback mit Sound und visuellen Cues
+- Flüssige 60 FPS auch bei maximaler visueller Qualität
+- UX-Verbesserungen für intuitive Bedienung
+
+---
+
+## Story E-009-S01: Shader-basiertes Glow Rendering
+
+**Als** Benutzer  
+**möchte ich** dass Partikel einen wunderschönen Glow-Effekt haben  
+**damit** die Simulation wie ein professionelles Kunstwerk aussieht
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Custom Shader für Bloom/Glow-Effekt implementiert
+- [ ] Glow-Intensität basiert auf Partikel-Helligkeit und -Größe
+- [ ] Multi-Layer Rendering: Base → Glow → Composite
+- [ ] Glow-Farbe folgt der Partikel-Farbe (keine weiße Überblendung)
+- [ ] Glow-Radius ist preset-abhängig konfigurierbar
+- [ ] Performance: <5ms zusätzliche Render-Zeit
+
+**Technische Details:**
+```glsl
+// Fragment Shader für Bloom
+uniform sampler2D texture0;
+uniform vec2 resolution;
+uniform float bloomIntensity;
+
+void main() {
+    vec4 color = texture2D(texture0, gl_TexCoord[0].xy);
+    vec4 bloom = vec4(0.0);
+    
+    // Gaussian Blur für Bloom
+    for(int i = -4; i <= 4; i++) {
+        for(int j = -4; j <= 4; j++) {
+            vec2 offset = vec2(float(i), float(j)) / resolution;
+            bloom += texture2D(texture0, gl_TexCoord[0].xy + offset);
+        }
+    }
+    bloom /= 81.0;
+    
+    gl_FragColor = color + bloom * bloomIntensity;
+}
+```
+
+**Fallback für WASM:**
+- Software-basierter Glow via Multi-Circle Rendering wenn Shader nicht verfügbar
+
+**Definition of Done:**
+- [ ] Glow sieht auf Screenshots "professionell" aus
+- [ ] Performance bleibt bei 60 FPS
+- [ ] Toggle mit F7 möglich
+
+---
+
+## Story E-009-S02: Ambient Sound Engine
+
+**Als** Benutzer  
+**möchte ich** eine atmosphärische Soundkulisse  
+**damit** die Simulation ein vollständiges audiovisuelles Erlebnis wird
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Ambient-Loop passend zum aktiven Preset (5 verschiedene)
+- [ ] Smooth Crossfade beim Preset-Wechsel (2-3 Sekunden)
+- [ ] Volume-Control via Keyboard (+/- Tasten)
+- [ ] Mute-Toggle mit M-Taste
+- [ ] Audio-Engine läuft ohne Frame-Drops
+- [ ] WASM-Kompatibilität mit Web Audio API
+
+**Sound-Design pro Preset:**
+| Preset | Ambient Sound | Mood |
+|--------|--------------|------|
+| Galaxy | Space Drone, tiefe Pads | Episch, kosmisch |
+| Firework | Nacht-Atmosphäre, ferne Musik | Festlich, fröhlich |
+| Swarm | Organische Texturen, Wind | Natürlich, fließend |
+| Fountain | Wasser-Rauschen, Glockenspiel | Beruhigend, elegant |
+| Chaos | Industrial Noise, Bass | Energetisch, wild |
+
+**Technische Details:**
+- Library: `beep` für Native, Web Audio API für WASM
+- Format: OGG Vorbis (kleinere Dateigröße)
+- Sample-Rate: 44.1 kHz, Stereo
+- Loop-Points: Seamless (keine hörbaren Übergänge)
+
+**Definition of Done:**
+- [ ] Ambient Sound spielt bei Start
+- [ ] Preset-Wechsel = Sound-Wechsel
+- [ ] Keine Audio-Glitches oder Knackser
+
+---
+
+## Story E-009-S03: Interaktions-Sound-Effekte
+
+**Als** Benutzer  
+**möchte ich** akustisches Feedback bei Interaktionen  
+**damit** meine Aktionen sich bedeutsam anfühlen
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] Maus-Anziehung: Subtiler "Magnet"-Sound
+- [ ] Maus-Abstoßung: Sanfter "Whoosh"-Effekt
+- [ ] Preset-Wechsel: Kurzer Transition-Sound
+- [ ] Debug-Toggle: UI-Klick-Sound
+- [ ] Partikel-Explosion (Firework): Dezente Sparkle-Sounds
+- [ ] Lautstärke proportional zur Interaktions-Intensität
+
+**Technische Details:**
+```go
+type SoundManager struct {
+    attractSound  *beep.Buffer
+    repelSound    *beep.Buffer
+    transitionSound *beep.Buffer
+    // ...
+}
+
+func (sm *SoundManager) PlayAttract(intensity float32) {
+    // Pitch und Volume basierend auf Intensität
+    streamer := sm.attractSound.Streamer(0, sm.attractSound.Len())
+    volume := &effects.Volume{Streamer: streamer, Base: 2, Volume: intensity - 0.5}
+    speaker.Play(volume)
+}
+```
+
+**Sound-Assets:**
+| Sound | Dauer | Stil |
+|-------|-------|------|
+| Attract | 0.3s | Magnetisch, tief |
+| Repel | 0.3s | Luftig, hoch |
+| Transition | 0.5s | Shimmer, neutral |
+| Click | 0.1s | Soft UI click |
+| Sparkle | 0.2s | Magical, glittery |
+
+**Definition of Done:**
+- [ ] Sounds spielen bei entsprechenden Events
+- [ ] Sounds sind nicht nervig bei Dauerbenutzung
+- [ ] Volume ist ausgewogen
+
+---
+
+## Story E-009-S04: Premium Farbpaletten
+
+**Als** Benutzer  
+**möchte ich** wunderschöne, professionell abgestimmte Farbpaletten  
+**damit** jedes Preset wie ein Kunstwerk aussieht
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] 5 kuratierte Farbpaletten (eine pro Preset)
+- [ ] Farbübergänge sind smooth und ästhetisch
+- [ ] Keine "grellen" oder unharmonischen Kombinationen
+- [ ] HDR-ähnliche Farbtiefe durch geschickte Alpha-Blending
+- [ ] Dunkle Farben haben subtile Luminanz (nie "tot")
+
+**Farbpaletten-Design:**
+
+**Galaxy Preset:**
+```
+Start: #FF6B9D (Pink-Magenta)    → End: #4A0080 (Deep Purple)
+Alt:   #00D4FF (Cyan)            → End: #000033 (Space Black)
+Glow:  #FFFFFF (White Star Core)
+```
+
+**Firework Preset:**
+```
+Gold:   #FFD700 → #FF4500 (Gold to Orange)
+Red:    #FF0044 → #880022 (Bright to Deep Red)
+Green:  #00FF88 → #004422 (Neon to Forest)
+Blue:   #0088FF → #001144 (Electric to Navy)
+White:  #FFFFFF → #888888 (Spark to Smoke)
+```
+
+**Swarm Preset:**
+```
+Primary: #00FFAA → #004433 (Bioluminescent Teal)
+Accent:  #FF8800 → #442200 (Warm Orange)
+```
+
+**Fountain Preset:**
+```
+Water:   #00AAFF → #003366 (Azure to Deep Blue)
+Spray:   #FFFFFF → #88CCFF (White to Light Blue)
+```
+
+**Chaos Preset:**
+```
+Electric: #FF00FF → #00FFFF (Magenta to Cyan)
+Fire:     #FFFF00 → #FF0000 (Yellow to Red)
+Void:     #880088 → #000000 (Purple to Black)
+```
+
+**Definition of Done:**
+- [ ] Farbpaletten in config.json definiert
+- [ ] Screenshots zeigen harmonische Farbgebung
+- [ ] User-Feedback: "Das sieht geil aus!"
+
+---
+
+## Story E-009-S05: Smooth UI Overlays
+
+**Als** Benutzer  
+**möchte ich** eine elegante UI mit sanften Animationen  
+**damit** die Bedienung sich premium anfühlt
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Preset-Indikator unten links mit Icon + Name
+- [ ] Steuerungs-Hinweise erscheinen bei Hover/Idle
+- [ ] Alle UI-Elemente haben Fade-In/Out Animationen
+- [ ] UI-Transparenz passt sich Helligkeit an (dunkel auf hell, hell auf dunkel)
+- [ ] Minimalistisches Design, nie aufdringlich
+- [ ] UI verschwindet nach 3s Inaktivität (außer bei Mouse-Hover)
+
+**UI-Layout:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                                          FPS: 60  🔊 On         │
+│                                                                 │
+│                                                                 │
+│                     [ PARTICLE CANVAS ]                         │
+│                                                                 │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  🌌 Galaxy                                                      │
+│  [1] Galaxy [2] Firework [3] Swarm [4] Fountain [5] Chaos      │
+│  LMB: Attract  RMB: Repel  M: Mute  F3: Debug                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Animation-Timings:**
+- Fade-In: 200ms ease-out
+- Fade-Out: 300ms ease-in
+- Slide-Up (Hints): 250ms ease-out
+- Color-Transition: 150ms linear
+
+**Definition of Done:**
+- [ ] UI sieht "modern" aus
+- [ ] Animationen sind smooth
+- [ ] UI verschwindet bei Inaktivität
+
+---
+
+## Story E-009-S06: Particle Motion Blur
+
+**Als** Benutzer  
+**möchte ich** schnelle Partikel mit Motion-Blur-Effekt  
+**damit** Bewegungen dynamischer und cinematischer wirken
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Schnelle Partikel haben Bewegungsunschärfe
+- [ ] Blur-Intensität proportional zur Geschwindigkeit
+- [ ] Blur-Richtung folgt Bewegungsvektor
+- [ ] Statische/langsame Partikel haben kein Blur
+- [ ] Blur ist toggle-bar mit F8
+- [ ] Performance-Impact < 10% zusätzliche Frame-Zeit
+
+**Technische Details:**
+```go
+func renderWithMotionBlur(pos, vel *components.Position, col *components.Color, size float32) {
+    speed := math.Sqrt(vel.X*vel.X + vel.Y*vel.Y)
+    if speed < 50 {
+        // Normal rendering
+        rl.DrawCircle(int32(pos.X), int32(pos.Y), size, toRaylibColor(col))
+        return
+    }
+    
+    // Motion blur via mehrere Semi-Transparente Kreise
+    blurSteps := int(math.Min(speed/50, 8))
+    stepAlpha := col.A / uint8(blurSteps+1)
+    
+    for i := 0; i < blurSteps; i++ {
+        t := float32(i) / float32(blurSteps)
+        x := pos.X - vel.X*t*0.016 // ~1 frame zurück
+        y := pos.Y - vel.Y*t*0.016
+        blurCol := rl.Color{col.R, col.G, col.B, stepAlpha}
+        rl.DrawCircle(int32(x), int32(y), size*(1-t*0.3), blurCol)
+    }
+    
+    // Hauptpartikel
+    rl.DrawCircle(int32(pos.X), int32(pos.Y), size, toRaylibColor(col))
+}
+```
+
+**Definition of Done:**
+- [ ] Motion Blur sichtbar bei schnellen Partikeln
+- [ ] Effekt sieht "cinematisch" aus
+- [ ] Toggle funktioniert
+
+---
+
+## Story E-009-S07: Bildschirm-Shake & Juice Effects
+
+**Als** Benutzer  
+**möchte ich** subtile "Game Feel" Effekte  
+**damit** starke Interaktionen impactful wirken
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Leichter Screen-Shake bei starker Maus-Abstoßung
+- [ ] Pulse-Effekt beim Preset-Wechsel (kurzes Zoom-In/Out)
+- [ ] Partikel "explodieren" visuell beim Spawn (Scale-Animation)
+- [ ] Attractor hat pulsierendes visuelles Feedback
+- [ ] Alle Effekte sind dezent und nicht ablenkend
+- [ ] Effekte können deaktiviert werden (Accessibility)
+
+**Juice-Intensitätsstufen:**
+| Stufe | Screen Shake | Pulse | Spawn Anim | Default |
+|-------|-------------|-------|------------|---------|
+| Off | ❌ | ❌ | ❌ | |
+| Subtle | 2px | 1.02x | 1.5x | ✅ |
+| Normal | 5px | 1.05x | 2x | |
+| Intense | 10px | 1.1x | 3x | |
+
+**Technische Details:**
+```go
+type ScreenEffects struct {
+    shakeIntensity float32
+    shakeDuration  float32
+    pulseScale     float32
+    pulseDuration  float32
+}
+
+func (se *ScreenEffects) ApplyShake(intensity float32) {
+    se.shakeIntensity = intensity
+    se.shakeDuration = 0.15 // 150ms
+}
+
+func (se *ScreenEffects) GetCameraOffset() (float32, float32) {
+    if se.shakeDuration <= 0 {
+        return 0, 0
+    }
+    x := (rand.Float32()*2 - 1) * se.shakeIntensity
+    y := (rand.Float32()*2 - 1) * se.shakeIntensity
+    return x, y
+}
+```
+
+**Definition of Done:**
+- [ ] Screen Shake bei starker Abstoßung spürbar
+- [ ] Pulse beim Preset-Wechsel
+- [ ] Effekte fühlen sich "gut" an
+
+---
+
+## Story E-009-S08: Performance-Optimiertes Quality Preset System
+
+**Als** Benutzer  
+**möchte ich** zwischen Qualitätsstufen wählen können  
+**damit** die Anwendung auf unterschiedlicher Hardware optimal läuft
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] 3 Quality-Presets: Low, Medium, High
+- [ ] Low: Keine Glow, kein Blur, reduzierte Partikelzahl
+- [ ] Medium: Einfacher Glow, kein Blur, normale Partikelzahl
+- [ ] High: Vollständiger Glow, Motion Blur, maximale Partikel
+- [ ] Quality-Wechsel via Q-Taste oder Auto-Detect
+- [ ] Auto-Detect: Wenn FPS < 50, automatisch runterstufen
+- [ ] Aktuelle Quality-Stufe im Debug-Overlay anzeigen
+
+**Quality-Matrix:**
+| Feature | Low | Medium | High |
+|---------|-----|--------|------|
+| Max Particles | 3.000 | 7.000 | 15.000 |
+| Glow Effect | ❌ | Simple | Full Shader |
+| Motion Blur | ❌ | ❌ | ✅ |
+| Trail Length | 3 | 5 | 10 |
+| Spawn Rate | 50/s | 100/s | 200/s |
+| Audio | Mono | Stereo | Stereo + Reverb |
+| UI Animations | ❌ | ✅ | ✅ |
+
+**Technische Details:**
+```go
+type QualityPreset struct {
+    Name          string
+    MaxParticles  int
+    GlowEnabled   bool
+    GlowQuality   int // 0=off, 1=simple, 2=full
+    MotionBlur    bool
+    TrailLength   int
+    SpawnRate     float32
+    AudioChannels int
+}
+
+var QualityPresets = map[string]QualityPreset{
+    "low": {
+        Name: "Low", MaxParticles: 3000, GlowEnabled: false,
+        GlowQuality: 0, MotionBlur: false, TrailLength: 3,
+        SpawnRate: 50, AudioChannels: 1,
+    },
+    "medium": {
+        Name: "Medium", MaxParticles: 7000, GlowEnabled: true,
+        GlowQuality: 1, MotionBlur: false, TrailLength: 5,
+        SpawnRate: 100, AudioChannels: 2,
+    },
+    "high": {
+        Name: "High", MaxParticles: 15000, GlowEnabled: true,
+        GlowQuality: 2, MotionBlur: true, TrailLength: 10,
+        SpawnRate: 200, AudioChannels: 2,
+    },
+}
+```
+
+**Definition of Done:**
+- [ ] Q-Taste wechselt Quality
+- [ ] Auto-Detect funktioniert bei niedrigen FPS
+- [ ] Visueller Unterschied zwischen Stufen erkennbar
+
+---
+
+# Sprint 6: Premium Experience (Woche 6 - NEU)
+
+| Story | Epic | Points | Priorität |
+|-------|------|--------|-----------|
+| E-009-S04 | Premium | 3 | 🟡 |
+| E-009-S02 | Premium | 4 | 🟡 |
+| E-009-S03 | Premium | 3 | 🟡 |
+| E-009-S05 | Premium | 4 | 🟡 |
+| E-009-S01 | Premium | 5 | 🟡 |
+| E-009-S06 | Premium | 4 | 🟡 |
+| E-009-S07 | Premium | 4 | 🟡 |
+| E-009-S08 | Premium | 5 | 🟡 |
+| **Total** | | **32** | |
+
+**Sprint Goal:** Die Particle Symphony ist ein visuelles und akustisches Meisterwerk. Jeder der es sieht sagt: "Wow, das ist geil!"
+
+---
+
+# Aktualisierter Dependency Graph (inkl. E-009)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STORY DEPENDENCIES                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  [E-001 bis E-007 - wie gehabt]                                 │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════    │
+│                                                                  │
+│  E-008: AWESOME-GO LISTING (UNCHANGED - WEITERHIN GÜLTIG!)      │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════    │
+│                                                                  │
+│  E-009: PREMIUM EXPERIENCE 🔥 (NEU)                              │
+│                                                                  │
+│  E-004-S01 (ColorSystem) ─────────┐                             │
+│  E-004-S03 (Trail-Rendering) ─────┤                             │
+│  E-004-S04 (Glow-Effekt) ─────────┘                             │
+│           │                                                      │
+│           ▼                                                      │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  E-009-S04 (Premium Farbpaletten) ◀─────────────────────┐│  │
+│  │       │                                                  ││  │
+│  │       │  (parallel)                                      ││  │
+│  │       │                                                  ││  │
+│  │  E-009-S01 (Shader Glow) ◀──── E-004-S04 Grundlage      ││  │
+│  │       │                                                  ││  │
+│  │       │  (parallel)                                      ││  │
+│  │       │                                                  ││  │
+│  │  E-009-S06 (Motion Blur)                                 ││  │
+│  │       │                                                  ││  │
+│  │       ▼                                                  ││  │
+│  │  E-009-S08 (Quality Presets) ◀───────────────────────────┘│  │
+│  │                                                           │  │
+│  │  ────────────────────────────────────────────────────────│  │
+│  │                                                           │  │
+│  │  E-006-S01 (Audio Input) ──────┐                         │  │
+│  │       │                        │                         │  │
+│  │       ▼                        ▼                         │  │
+│  │  E-009-S02 (Ambient Sound) ◀───┤                         │  │
+│  │       │                        │                         │  │
+│  │       ▼                        │                         │  │
+│  │  E-009-S03 (Interaktions-SFX) ◀┘                         │  │
+│  │                                                           │  │
+│  │  ────────────────────────────────────────────────────────│  │
+│  │                                                           │  │
+│  │  E-003-S04 (Debug Overlay) ───┐                          │  │
+│  │       │                       │                          │  │
+│  │       ▼                       ▼                          │  │
+│  │  E-009-S05 (Smooth UI) ◀──────┤                          │  │
+│  │       │                       │                          │  │
+│  │       ▼                       │                          │  │
+│  │  E-009-S07 (Juice Effects) ◀──┘                          │  │
+│  │                                                           │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                      │                                          │
+│                      ▼                                          │
+│              🎨🔊 PREMIUM EXPERIENCE COMPLETE                    │
+│         "Der geilste ECS-Showcase der Welt"                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# E-009 Technical Requirements
+
+## Audio Assets Needed
+
+| Asset | Format | Size | Source |
+|-------|--------|------|--------|
+| Galaxy Ambient | OGG | ~2MB | Create/License |
+| Firework Ambient | OGG | ~2MB | Create/License |
+| Swarm Ambient | OGG | ~2MB | Create/License |
+| Fountain Ambient | OGG | ~2MB | Create/License |
+| Chaos Ambient | OGG | ~2MB | Create/License |
+| SFX: Attract | OGG | ~50KB | Create |
+| SFX: Repel | OGG | ~50KB | Create |
+| SFX: Transition | OGG | ~100KB | Create |
+| SFX: Click | OGG | ~20KB | Create |
+| SFX: Sparkle | OGG | ~50KB | Create |
+
+**Lizenz-Optionen:**
+1. Royalty-Free Musik von Freesound.org / OpenGameArt
+2. AI-generierte Musik (Suno, AIVA)
+3. Eigenkomposition
+4. Creative Commons Attribution
+
+## Performance Budgets
+
+| Feature | Budget (ms/frame) | @ 60 FPS |
+|---------|-------------------|----------|
+| Base Rendering | 8ms | Standard |
+| Glow Shader | 3ms | +19% |
+| Motion Blur | 2ms | +12% |
+| Audio Processing | 1ms | +6% |
+| UI Rendering | 1ms | +6% |
+| **Total Premium** | **15ms** | **Machbar!** |
+
+## WASM Audio Considerations
+
+```javascript
+// Web Audio API für WASM
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+async function loadAmbientSound(preset) {
+    const response = await fetch(`sounds/${preset}-ambient.ogg`);
+    const arrayBuffer = await response.arrayBuffer();
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    
+    const source = audioContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.loop = true;
+    source.connect(audioContext.destination);
+    return source;
+}
+```
+
+---
+
+# Finale Aktualisierte Übersicht
+
+| Metrik | Vorher | Nachher |
+|--------|--------|---------|
+| **Epics** | 8 | 9 |
+| **User Stories** | 35 | 43 |
+| **Story Points** | 127 | 159 |
+| **Sprints** | 5 | 6 |
+
+### Epic-Übersicht (Final)
+
+| Epic | Titel | Stories | Punkte | Priorität | Status |
+|------|-------|---------|--------|-----------|--------|
+| E-001 | ECS Foundation | 5 | 18 | 🔴 MUST | ✅ |
+| E-002 | Physik-Engine | 4 | 15 | 🔴 MUST | ✅ |
+| E-003 | Interaktivität | 4 | 13 | 🔴 MUST | ✅ |
+| E-004 | Visual Effects | 4 | 16 | 🟡 SHOULD | 🔄 |
+| E-005 | Preset-System | 4 | 13 | 🟡 SHOULD | ✅ |
+| E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD | 📋 |
+| E-007 | Web Deployment | 4 | 13 | 🔴 MUST | ✅ |
+| E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST | 📋 |
+| **E-009** | **Premium Experience 🔥** | **8** | **32** | **🟡 SHOULD** | **📋 NEU** |
+
+**Legende:** ✅ Done | 🔄 In Progress | 📋 Backlog
+
+---
+
+**⚠️ WICHTIG: EPIC E-008 (Awesome-Go Listing) BLEIBT UNVERÄNDERT UND VOLLSTÄNDIG GÜLTIG!**
+
+Die neue Epic E-009 ergänzt das Projekt um Premium-Features und steht nicht im Konflikt mit den Awesome-Go Anforderungen.
+
+---
+
+**🚀🔥 YOLO MODE COMPLETE - 43 STORIES READY FOR IMPLEMENTATION!**
+
+**🎵 Particle Symphony wird LEGENDÄR! 🎵**
