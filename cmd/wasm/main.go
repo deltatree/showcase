@@ -927,7 +927,7 @@ func isSoundMuted(this js.Value, args []js.Value) interface{} {
 func toggleFullscreen(this js.Value, args []js.Value) interface{} {
 	doc := js.Global().Get("document")
 	fsElement := doc.Get("fullscreenElement")
-	
+
 	if fsElement.IsNull() || fsElement.IsUndefined() {
 		// Enter fullscreen
 		canvas := doc.Call("querySelector", "canvas")
