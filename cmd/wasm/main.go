@@ -578,6 +578,15 @@ func (g *Game) Update() error {
 		g.cycleQuality()
 	}
 
+	// Exit fullscreen with ESC or F key
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyF) {
+		doc := js.Global().Get("document")
+		fsElement := doc.Get("fullscreenElement")
+		if !fsElement.IsNull() && !fsElement.IsUndefined() {
+			doc.Call("exitFullscreen")
+		}
+	}
+
 	// Spawn with quality-adjusted rate
 	effectiveRate := float32(g.preset.SpawnRate) * g.qualitySettings.SpawnMult
 	g.spawnTimer += dt
