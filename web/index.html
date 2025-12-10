@@ -83,7 +83,7 @@
             align-items: center;
             padding: 1rem;
             background: var(--bg-secondary);
-            min-height: calc(100vh - 280px);
+            min-height: 500px;
         }
         
         #game-container {
@@ -96,16 +96,14 @@
             border: 1px solid rgba(255,255,255,0.1);
             width: 1280px;
             height: 720px;
-            max-width: 100%;
-            aspect-ratio: 16 / 9;
+            max-width: calc(100vw - 2rem);
+            background: #0a0a14;
         }
         
-        canvas {
+        #game-container canvas {
             display: block;
-            width: 100% !important;
-            height: 100% !important;
-            max-width: 1280px;
-            max-height: 720px;
+            width: 100%;
+            height: 100%;
         }
         
         /* Loading State */
@@ -536,6 +534,7 @@
         const loadingEl = document.getElementById('loading');
         const errorEl = document.getElementById('error');
         const errorText = document.getElementById('error-text');
+        const gameContainer = document.getElementById('game-container');
 
         async function init() {
             try {
@@ -549,6 +548,15 @@
                 
                 // Run the Go WASM
                 go.run(result.instance);
+                
+                // Move canvas into game-container after Ebitengine creates it
+                setTimeout(() => {
+                    const canvas = document.querySelector('canvas');
+                    if (canvas && canvas.parentNode !== gameContainer) {
+                        // Move canvas to correct container
+                        gameContainer.appendChild(canvas);
+                    }
+                }, 100);
                 
             } catch (err) {
                 console.error('WASM Load Error:', err);
@@ -567,6 +575,19 @@
                 e.preventDefault();
             }
         });
+        
+        // Prevent default touch behaviors on canvas
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                e.preventDefault();
+            }
+        }, { passive: false });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>

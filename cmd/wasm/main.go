@@ -757,7 +757,7 @@ func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	// Fixed logical size - actual rendering size is controlled by CSS
+	// Fixed logical size - Ebitengine handles coordinate transformation
 	return screenWidth, screenHeight
 }
 
@@ -765,8 +765,8 @@ func main() {
 	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Particle Symphony - ECS Showcase")
-	// Disable resizing mode for WASM to prevent fullscreen issues
-	// ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	// Enable resizing mode for proper coordinate handling
+	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	game := NewGame()
 	if err := ebiten.RunGame(game); err != nil {
