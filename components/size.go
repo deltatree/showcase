@@ -12,11 +12,11 @@ package components
 //	size := components.NewSize().WithRadius(5.0).WithEndSize(0.5)
 type Size struct {
 	// Radius is the current visual radius in pixels.
-	Radius    float32
+	Radius float32
 	// StartSize is the initial radius when the particle spawns.
 	StartSize float32
 	// EndSize is the target radius when the particle expires.
-	EndSize   float32
+	EndSize float32
 }
 
 // Mask returns the component mask for Size.

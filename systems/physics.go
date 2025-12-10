@@ -6,13 +6,13 @@
 // # System Execution Order
 //
 // Systems are executed in registration order each frame:
-//   1. InputSystem - handles mouse/keyboard input
-//   2. EmitterSystem - spawns new particles
-//   3. GravitySystem - applies attractor forces
-//   4. PhysicsSystem - updates positions and velocities
-//   5. LifetimeSystem - ages and removes expired entities
-//   6. ColorSystem - interpolates colors and sizes
-//   7. RenderSystem - draws entities to screen
+//  1. InputSystem - handles mouse/keyboard input
+//  2. EmitterSystem - spawns new particles
+//  3. GravitySystem - applies attractor forces
+//  4. PhysicsSystem - updates positions and velocities
+//  5. LifetimeSystem - ages and removes expired entities
+//  6. ColorSystem - interpolates colors and sizes
+//  7. RenderSystem - draws entities to screen
 //
 // # Creating Custom Systems
 //
