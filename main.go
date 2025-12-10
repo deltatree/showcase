@@ -50,6 +50,12 @@ func main() {
 		cfg.Window.Title,
 	)
 
+	// Connect particle slider to emitter
+	renderSystem.SetMaxParticles(cfg.Particles.MaxCount)
+	renderSystem.SetOnParticleChange(func(newMax int) {
+		emitterSystem.SetMaxParticles(newMax)
+	})
+
 	// Preset switcher function
 	currentPresetIndex := 0
 	presetSwitcher := func(index int) {

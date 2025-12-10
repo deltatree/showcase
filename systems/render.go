@@ -20,14 +20,16 @@ import (
 //   - Mouse coordinates
 //   - Control hints
 type renderSystem struct {
-	width, height int32
-	title         string
-	showDebug     bool
-	presetName    string
-	quality       premium.QualitySettings
-	uiState       *premium.UIState
-	effects       *premium.ScreenEffects
-	palette       premium.ColorPalette
+	width, height   int32
+	title           string
+	showDebug       bool
+	presetName      string
+	quality         premium.QualitySettings
+	uiState         *premium.UIState
+	effects         *premium.ScreenEffects
+	palette         premium.ColorPalette
+	maxParticles    int32           // For slider
+	onParticleChange func(int)      // Callback when slider changes
 }
 
 // NewRenderSystem creates a new render system for the specified window.
@@ -37,15 +39,16 @@ type renderSystem struct {
 //   - title: window title displayed in the title bar
 func NewRenderSystem(width, height int32, title string) *renderSystem {
 	return &renderSystem{
-		width:      width,
-		height:     height,
-		title:      title,
-		showDebug:  true,
-		presetName: "Galaxy",
-		quality:    premium.GetQualitySettings(premium.QualityMedium),
-		uiState:    premium.NewUIState(),
-		effects:    premium.NewScreenEffects(),
-		palette:    premium.GalaxyPalette,
+		width:        width,
+		height:       height,
+		title:        title,
+		showDebug:    true,
+		presetName:   "Fountain",
+		quality:      premium.GetQualitySettings(premium.QualityHigh), // Default to HIGH
+		uiState:      premium.NewUIState(),
+		effects:      premium.NewScreenEffects(),
+		palette:      premium.GalaxyPalette,
+		maxParticles: 10000,
 	}
 }
 
@@ -138,6 +141,80 @@ func (s *renderSystem) Process(em ecs.EntityManager) (state int) {
 		)
 	}
 
+	// Particle count slider (always visible in debug mode)
+	if s.showDebug {
+		sliderX := s.width - 250
+		sliderY := int32(10)
+		sliderWidth := int32(200)
+		sliderHeight := int32(20)
+		
+		// Draw slider background
+		rl.DrawRectangle(sliderX, sliderY, sliderWidth, sliderHeight, rl.NewColor(40, 40, 60, 200))
+		rl.DrawRectangleLines(sliderX, sliderY, sliderWidth, sliderHeight, rl.NewColor(100, 126, 234, 200))
+		
+		// Calculate fill based on maxParticles (500-20000 range)
+		fillPercent := float32(s.maxParticles-500) / float32(20000-500)
+		fillWidth := int32(float32(sliderWidth-4) * fillPercent)
+		rl.DrawRectangle(sliderX+2, sliderY+2, fillWidth, sliderHeight-4, rl.NewColor(102, 126, 234, 200))
+		
+		// Draw label
+		rl.DrawText(fmt.Sprintf("Max Particles: %d", s.maxParticles), sliderX, sliderY+25, 14, rl.White)
+		
+		// Handle slider interaction
+		mouseX := rl.GetMouseX()
+		mouseY := rl.GetMouseY()
+		if rl.IsMouseButtonDown(rl.MouseLeftButton) {
+			if mouseX >= sliderX && mouseX <= sliderX+sliderWidth &&
+				mouseY >= sliderY && mouseY <= sliderY+sliderHeight {
+				// Calculate new value
+				percent := float32(mouseX-sliderX) / float32(sliderWidth)
+				newMax := int32(500 + percent*19500)
+				if newMax < 500 {
+					newMax = 500
+				}
+				if newMax > 20000 {
+					newMax = 20000
+				}
+				if newMax != s.maxParticles {
+					s.maxParticles = newMax
+					if s.onParticleChange != nil {
+						s.onParticleChange(int(newMax))
+					}
+				}
+			}
+		}
+		
+		// Quality buttons
+		qx := s.width - 250
+		qy := int32(55)
+		rl.DrawText("Quality:", qx, qy, 14, rl.White)
+		
+		qualities := []string{"Low", "Med", "High"}
+		for i, q := range qualities {
+			btnX := qx + 60 + int32(i*55)
+			btnW := int32(50)
+			btnH := int32(20)
+			
+			isActive := int(s.quality.Level) == i
+			bgColor := rl.NewColor(40, 40, 60, 200)
+			if isActive {
+				bgColor = rl.NewColor(102, 126, 234, 255)
+			}
+			
+			rl.DrawRectangle(btnX, qy, btnW, btnH, bgColor)
+			rl.DrawRectangleLines(btnX, qy, btnW, btnH, rl.NewColor(150, 150, 180, 200))
+			rl.DrawText(q, btnX+8, qy+3, 14, rl.White)
+			
+			// Handle click
+			if rl.IsMouseButtonPressed(rl.MouseLeftButton) {
+				if mouseX >= btnX && mouseX <= btnX+btnW &&
+					mouseY >= qy && mouseY <= qy+btnH {
+					s.quality = premium.GetQualitySettings(premium.QualityLevel(i))
+				}
+			}
+		}
+	}
+
 	rl.EndDrawing()
 
 	return ecs.StateEngineContinue
@@ -175,4 +252,19 @@ func (s *renderSystem) ApplyShake(intensity, duration float32) {
 // ApplyPulse triggers a screen pulse effect.
 func (s *renderSystem) ApplyPulse(scale, duration float32) {
 	s.effects.ApplyPulse(scale, duration)
+}
+
+// SetMaxParticles sets the max particles for the slider display.
+func (s *renderSystem) SetMaxParticles(max int) {
+	s.maxParticles = int32(max)
+}
+
+// GetMaxParticles returns the current max particles setting.
+func (s *renderSystem) GetMaxParticles() int {
+	return int(s.maxParticles)
+}
+
+// SetOnParticleChange sets the callback for when particle slider changes.
+func (s *renderSystem) SetOnParticleChange(callback func(int)) {
+	s.onParticleChange = callback
 }

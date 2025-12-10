@@ -255,6 +255,96 @@
             cursor: default;
         }
         
+        /* Slider Controls */
+        .slider-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 200px;
+        }
+        
+        .slider-label {
+            color: var(--accent-1);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .slider-value {
+            color: var(--text-primary);
+            font-weight: bold;
+            font-size: 1rem;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 200px;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent-2), var(--accent-1));
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        .quality-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .quality-btn {
+            padding: 0.4rem 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        
+        .quality-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: var(--text-primary);
+        }
+        
+        .quality-btn.active {
+            background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+            color: white;
+            border-color: transparent;
+        }
+        
         /* Footer */
         footer {
             text-align: center;
@@ -499,11 +589,34 @@
                 </div>
             </div>
             <div class="presets-row">
-                <span class="preset-badge">1️⃣ Galaxy</span>
+                <span class="preset-badge">1️⃣ Fountain</span>
                 <span class="preset-badge">2️⃣ Firework</span>
-                <span class="preset-badge">3️⃣ Swarm</span>
-                <span class="preset-badge">4️⃣ Fountain</span>
-                <span class="preset-badge">5️⃣ Chaos</span>
+                <span class="preset-badge">3️⃣ Galaxy</span>
+                <span class="preset-badge">4️⃣ Chaos</span>
+                <span class="preset-badge">5️⃣ Swarm</span>
+            </div>
+            
+            <!-- Sliders for Particle Count and Quality -->
+            <div class="slider-container">
+                <div class="slider-item">
+                    <span class="slider-label">🎯 Max Particles</span>
+                    <input type="range" id="particle-slider" min="500" max="20000" value="10000" step="500">
+                    <span class="slider-value" id="particle-count">10000</span>
+                </div>
+                <div class="slider-item">
+                    <span class="slider-label">✨ Quality</span>
+                    <div class="quality-buttons">
+                        <button class="quality-btn" data-quality="0">Low</button>
+                        <button class="quality-btn" data-quality="1">Medium</button>
+                        <button class="quality-btn active" data-quality="2">High</button>
+                    </div>
+                </div>
+                <div class="slider-item">
+                    <span class="slider-label">🔊 Sound</span>
+                    <div class="quality-buttons">
+                        <button class="quality-btn active" id="sound-btn">🔊 ON</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -556,6 +669,9 @@
                         // Move canvas to correct container
                         gameContainer.appendChild(canvas);
                     }
+                    
+                    // Setup UI controls after WASM is ready
+                    setupControls();
                 }, 100);
                 
             } catch (err) {
@@ -564,6 +680,53 @@
                 errorEl.style.display = 'block';
                 errorText.textContent = err.message || 'Unknown error occurred';
             }
+        }
+        
+        function setupControls() {
+            // Particle count slider
+            const particleSlider = document.getElementById('particle-slider');
+            const particleCountDisplay = document.getElementById('particle-count');
+            
+            particleSlider.addEventListener('input', (e) => {
+                const count = parseInt(e.target.value);
+                particleCountDisplay.textContent = count.toLocaleString();
+                if (typeof setParticleCount === 'function') {
+                    setParticleCount(count);
+                }
+            });
+            
+            // Quality buttons
+            const qualityBtns = document.querySelectorAll('.quality-btn[data-quality]');
+            qualityBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    qualityBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const level = parseInt(btn.dataset.quality);
+                    if (typeof setQualityLevel === 'function') {
+                        setQualityLevel(level);
+                    }
+                });
+            });
+            
+            // Sound toggle
+            const soundBtn = document.getElementById('sound-btn');
+            let soundOn = true;
+            soundBtn.addEventListener('click', () => {
+                soundOn = !soundOn;
+                soundBtn.textContent = soundOn ? '🔊 ON' : '🔇 OFF';
+                soundBtn.classList.toggle('active', soundOn);
+                // Trigger M key press in WASM
+                const event = new KeyboardEvent('keydown', { key: 'm', code: 'KeyM' });
+                document.dispatchEvent(event);
+            });
+            
+            // Update active particle count display periodically
+            setInterval(() => {
+                if (typeof getActiveParticleCount === 'function') {
+                    const active = getActiveParticleCount();
+                    // Could update a display element here
+                }
+            }, 500);
         }
 
         // Start loading

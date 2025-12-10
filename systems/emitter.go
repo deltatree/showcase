@@ -160,6 +160,16 @@ func (s *emitterSystem) SetSpawnRate(rate int) {
 	s.spawnRate = rate
 }
 
+// SetMaxParticles sets the maximum particle count.
+func (s *emitterSystem) SetMaxParticles(max int) {
+	s.maxParticles = max
+}
+
+// GetMaxParticles returns the current max particle count.
+func (s *emitterSystem) GetMaxParticles() int {
+	return s.maxParticles
+}
+
 // SetQuality sets the quality level for particle limits.
 func (s *emitterSystem) SetQuality(level premium.QualityLevel) {
 	s.quality = premium.GetQualitySettings(level)

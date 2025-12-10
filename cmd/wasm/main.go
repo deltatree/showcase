@@ -34,8 +34,9 @@ import (
 const (
 	screenWidth  = 1280
 	screenHeight = 720
-	maxParticles = 10000
 )
+
+var maxParticles = 10000 // Configurable via UI
 
 // Particle represents a single particle entity
 type Particle struct {
@@ -138,19 +139,43 @@ var qualityPresets = map[QualityLevel]QualitySettings{
 	QualityHigh:   {MaxParticles: 12000, GlowEnabled: true, GlowPasses: 2, SpawnMult: 1.5},
 }
 
-// AudioEngine handles Web Audio API for sound effects
+// AudioEngine handles Web Audio API for interactive musical sound effects
 type AudioEngine struct {
-	ctx       js.Value
-	muted     bool
-	volume    float64
-	lastNote  int
-	noteTimer float32
+	ctx           js.Value
+	muted         bool
+	volume        float64
+	lastNote      int
+	scaleIndex    int
+	chordIndex    int
+	arpIndex      int
+	interactTimer float32
 }
+
+// Musical scales for variety
+var (
+	// Different scales for different moods
+	pentatonicMajor = []float64{261.63, 293.66, 329.63, 392.00, 440.00}           // C D E G A
+	pentatonicMinor = []float64{261.63, 311.13, 349.23, 392.00, 466.16}           // C Eb F G Bb
+	blues           = []float64{261.63, 311.13, 349.23, 369.99, 392.00, 466.16}   // C Eb F F# G Bb
+	japanese        = []float64{261.63, 277.18, 329.63, 392.00, 415.30}           // C Db E G Ab
+	arabic          = []float64{261.63, 277.18, 329.63, 349.23, 392.00, 415.30}   // C Db E F G Ab
+	wholeTone       = []float64{261.63, 293.66, 329.63, 369.99, 415.30, 466.16}   // C D E F# G# A#
+	
+	allScales = [][]float64{pentatonicMajor, pentatonicMinor, blues, japanese, arabic, wholeTone}
+	
+	// Chord types (intervals in semitones from root)
+	chordMajor    = []float64{1.0, 1.26, 1.5}    // Root, Major 3rd, Perfect 5th
+	chordMinor    = []float64{1.0, 1.19, 1.5}    // Root, Minor 3rd, Perfect 5th
+	chordDim      = []float64{1.0, 1.19, 1.414}  // Root, Minor 3rd, Tritone
+	chordSus4     = []float64{1.0, 1.335, 1.5}   // Root, Perfect 4th, Perfect 5th
+	chordPowerAdd = []float64{1.0, 1.5, 2.0}     // Root, 5th, Octave
+)
 
 func NewAudioEngine() *AudioEngine {
 	ae := &AudioEngine{
-		muted:  false,
-		volume: 0.15,
+		muted:      false,
+		volume:     0.2,
+		scaleIndex: 0,
 	}
 	// Create Web Audio context
 	audioCtx := js.Global().Get("AudioContext")
@@ -173,16 +198,16 @@ func (ae *AudioEngine) Resume() {
 	}
 }
 
-func (ae *AudioEngine) PlayTone(freq float64, duration float64, volume float64) {
+// PlayTone plays a single tone with specified waveform
+func (ae *AudioEngine) PlayTone(freq float64, duration float64, volume float64, waveType string) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	// Create oscillator for synth sound
 	osc := ae.ctx.Call("createOscillator")
 	gain := ae.ctx.Call("createGain")
 
 	osc.Get("frequency").Set("value", freq)
-	osc.Set("type", "sine")
+	osc.Set("type", waveType)
 
 	now := ae.ctx.Get("currentTime").Float()
 	gain.Get("gain").Call("setValueAtTime", volume*ae.volume, now)
@@ -194,49 +219,153 @@ func (ae *AudioEngine) PlayTone(freq float64, duration float64, volume float64) 
 	osc.Call("stop", now+duration)
 }
 
-func (ae *AudioEngine) PlayAttract() {
-	ae.PlayTone(440, 0.1, 0.3) // A4
-}
-
-func (ae *AudioEngine) PlayRepel() {
-	ae.PlayTone(330, 0.1, 0.3) // E4
-}
-
-func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
-	// Play chord based on preset
-	notes := []float64{261.63, 329.63, 392.00, 493.88, 587.33} // C4, E4, G4, B4, D5
-	if presetIndex < len(notes) {
-		ae.PlayTone(notes[presetIndex], 0.2, 0.4)
-		ae.PlayTone(notes[presetIndex]*1.5, 0.15, 0.2) // Fifth
+// PlayChord plays multiple notes simultaneously
+func (ae *AudioEngine) PlayChord(baseFreq float64, intervals []float64, duration float64, volume float64, waveType string) {
+	for i, interval := range intervals {
+		// Slight detuning for richness
+		detune := 1.0 + float64(i)*0.002
+		ae.PlayTone(baseFreq*interval*detune, duration, volume/float64(len(intervals)), waveType)
 	}
 }
 
-// Ambient sound generator - pentatonic scale based on particle count
-func (ae *AudioEngine) UpdateAmbient(particleCount int, dt float32) {
+// PlayArpeggio plays notes in sequence
+func (ae *AudioEngine) PlayArpeggio(baseFreq float64, intervals []float64, noteLen float64, volume float64, waveType string) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	ae.noteTimer -= dt
-	if ae.noteTimer <= 0 {
-		// Pentatonic scale: C, D, E, G, A
-		scale := []float64{261.63, 293.66, 329.63, 392.00, 440.00}
-		octave := 1.0
-		if particleCount > 3000 {
-			octave = 2.0
-		}
-		noteIdx := (ae.lastNote + 1 + rand.Intn(3)) % len(scale)
-		ae.lastNote = noteIdx
-		freq := scale[noteIdx] * octave
+	now := ae.ctx.Get("currentTime").Float()
+	for i, interval := range intervals {
+		osc := ae.ctx.Call("createOscillator")
+		gain := ae.ctx.Call("createGain")
+		
+		osc.Get("frequency").Set("value", baseFreq*interval)
+		osc.Set("type", waveType)
+		
+		startTime := now + float64(i)*noteLen*0.8
+		gain.Get("gain").Call("setValueAtTime", 0.001, now)
+		gain.Get("gain").Call("setValueAtTime", volume*ae.volume, startTime)
+		gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, startTime+noteLen)
+		
+		osc.Call("connect", gain)
+		gain.Call("connect", ae.ctx.Get("destination"))
+		osc.Call("start", now)
+		osc.Call("stop", startTime+noteLen+0.1)
+	}
+}
 
-		// Volume based on particle density
-		vol := 0.05 + float64(particleCount)/20000.0*0.1
-		if vol > 0.15 {
-			vol = 0.15
+// PlayInteraction - called during particle interaction, creates varied musical response
+func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, particleCount int) {
+	if ae.muted || !ae.IsReady() {
+		return
+	}
+	
+	// Choose scale based on attract/repel and randomness
+	scale := allScales[ae.scaleIndex]
+	
+	// Base note from scale
+	noteIdx := (ae.lastNote + 1 + rand.Intn(3)) % len(scale)
+	ae.lastNote = noteIdx
+	baseFreq := scale[noteIdx]
+	
+	// Octave based on intensity
+	octave := 1.0
+	if intensity > 0.5 {
+		octave = 2.0
+	}
+	if particleCount > 5000 {
+		octave *= 0.5 // Lower octave for many particles
+	}
+	baseFreq *= octave
+	
+	// Volume based on intensity
+	vol := 0.1 + intensity*0.3
+	if vol > 0.4 {
+		vol = 0.4
+	}
+	
+	// Waveform variety
+	waveTypes := []string{"sine", "triangle", "square", "sawtooth"}
+	waveType := waveTypes[rand.Intn(len(waveTypes))]
+	
+	// Different musical responses
+	responseType := rand.Intn(5)
+	
+	switch responseType {
+	case 0:
+		// Single note with harmonics
+		ae.PlayTone(baseFreq, 0.2, vol, waveType)
+		ae.PlayTone(baseFreq*2, 0.15, vol*0.3, "sine")
+	case 1:
+		// Major or minor chord based on attract/repel
+		if isAttract {
+			ae.PlayChord(baseFreq, chordMajor, 0.25, vol, waveType)
+		} else {
+			ae.PlayChord(baseFreq, chordMinor, 0.25, vol, waveType)
 		}
-		ae.PlayTone(freq, 0.3, vol)
+	case 2:
+		// Power chord
+		ae.PlayChord(baseFreq, chordPowerAdd, 0.3, vol, "sawtooth")
+	case 3:
+		// Quick arpeggio up or down
+		intervals := []float64{1.0, 1.26, 1.5, 2.0}
+		if !isAttract {
+			// Reverse for repel
+			intervals = []float64{2.0, 1.5, 1.26, 1.0}
+		}
+		ae.PlayArpeggio(baseFreq, intervals, 0.08, vol, waveType)
+	case 4:
+		// Suspended chord (ethereal)
+		ae.PlayChord(baseFreq, chordSus4, 0.3, vol, "triangle")
+	}
+	
+	// Occasionally change scale for variety
+	if rand.Intn(20) == 0 {
+		ae.scaleIndex = (ae.scaleIndex + 1) % len(allScales)
+	}
+}
 
-		// Next note timing
-		ae.noteTimer = 0.3 + rand.Float32()*0.4
+// PlayPresetChange plays a distinctive sound when switching presets
+func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
+	if ae.muted || !ae.IsReady() {
+		return
+	}
+	
+	// Each preset gets a unique chord/sound
+	presetSounds := []struct {
+		freq   float64
+		chord  []float64
+		wave   string
+	}{
+		{329.63, chordMajor, "triangle"},    // Fountain - bright, major
+		{261.63, chordMinor, "sawtooth"},    // Firework - explosive
+		{440.00, chordSus4, "sine"},         // Galaxy - ethereal
+		{349.23, chordPowerAdd, "square"},   // Chaos - aggressive
+		{392.00, chordDim, "triangle"},      // Swarm - mysterious
+	}
+	
+	if presetIndex < len(presetSounds) {
+		ps := presetSounds[presetIndex]
+		ae.PlayChord(ps.freq, ps.chord, 0.3, 0.35, ps.wave)
+		// Add shimmer
+		ae.PlayTone(ps.freq*4, 0.2, 0.1, "sine")
+	}
+	
+	// Switch to a scale that matches the preset mood
+	ae.scaleIndex = presetIndex % len(allScales)
+}
+
+// UpdateInteraction should be called each frame during interaction
+func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, intensity float64, particleCount int, dt float32) {
+	if !isInteracting {
+		ae.interactTimer = 0
+		return
+	}
+	
+	ae.interactTimer -= dt
+	if ae.interactTimer <= 0 {
+		ae.PlayInteraction(isAttract, intensity, particleCount)
+		// Variable timing based on intensity
+		ae.interactTimer = 0.1 + (1.0-float32(intensity))*0.2 + rand.Float32()*0.1
 	}
 }
 
@@ -282,10 +411,10 @@ func NewGame() *Game {
 		isMobile = contains(ua, "Mobile") || contains(ua, "Android") || contains(ua, "iPhone") || contains(ua, "iPad")
 	}
 
-	// Default quality based on device
-	defaultQuality := QualityMedium
+	// Default quality is HIGH for best experience
+	defaultQuality := QualityHigh
 	if isMobile {
-		defaultQuality = QualityLow
+		defaultQuality = QualityMedium // Mobile gets Medium for performance
 	}
 
 	g := &Game{
@@ -453,17 +582,17 @@ func (g *Game) Update() error {
 		g.attractorMass = 0
 	}
 
-	// Play sound effects for attract/repel
+	// Interactive music - plays varied sounds during interaction
+	isInteracting := g.attractorMass != 0
 	isAttracting := g.attractorMass > 0
-	isRepelling := g.attractorMass < 0
-	if isAttracting && !g.lastAttract {
-		g.audio.PlayAttract()
+	intensity := math.Abs(float64(g.attractorMass)) / 8000.0
+	if intensity > 1.0 {
+		intensity = 1.0
 	}
-	if isRepelling && !g.lastRepel {
-		g.audio.PlayRepel()
-	}
+	g.audio.UpdateInteraction(isInteracting, isAttracting, intensity, g.activeCount, dt)
+	
 	g.lastAttract = isAttracting
-	g.lastRepel = isRepelling
+	g.lastRepel = g.attractorMass < 0
 
 	keys := []ebiten.Key{ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4, ebiten.Key5}
 	for i, key := range keys {
@@ -560,9 +689,6 @@ func (g *Game) Update() error {
 		p.A = uint8(255 * (1 - t*t))
 		p.Radius = p.StartSize + (p.EndSize-p.StartSize)*t
 	}
-
-	// Update ambient sound based on particle count
-	g.audio.UpdateAmbient(g.activeCount, dt)
 
 	return nil
 }
@@ -761,7 +887,68 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
+// Global game reference for JS callbacks
+var gameInstance *Game
+
+// setParticleCount is called from JavaScript to update max particles
+func setParticleCount(this js.Value, args []js.Value) interface{} {
+	if len(args) > 0 {
+		count := args[0].Int()
+		if count < 500 {
+			count = 500
+		}
+		if count > 20000 {
+			count = 20000
+		}
+		maxParticles = count
+		
+		// Resize particle slice if game exists
+		if gameInstance != nil && len(gameInstance.particles) < maxParticles {
+			newParticles := make([]Particle, maxParticles)
+			copy(newParticles, gameInstance.particles)
+			gameInstance.particles = newParticles
+		}
+	}
+	return nil
+}
+
+// getParticleCount returns current max particles for JS
+func getParticleCount(this js.Value, args []js.Value) interface{} {
+	return maxParticles
+}
+
+// getActiveParticleCount returns current active particle count
+func getActiveParticleCount(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		return gameInstance.activeCount
+	}
+	return 0
+}
+
+// setQuality sets quality level from JS (0=Low, 1=Medium, 2=High)
+func setQualityLevel(this js.Value, args []js.Value) interface{} {
+	if len(args) > 0 && gameInstance != nil {
+		level := args[0].Int()
+		switch level {
+		case 0:
+			gameInstance.quality = QualityLow
+		case 1:
+			gameInstance.quality = QualityMedium
+		case 2:
+			gameInstance.quality = QualityHigh
+		}
+		gameInstance.qualitySettings = qualityPresets[gameInstance.quality]
+	}
+	return nil
+}
+
 func main() {
+	// Register JavaScript API
+	js.Global().Set("setParticleCount", js.FuncOf(setParticleCount))
+	js.Global().Set("getParticleCount", js.FuncOf(getParticleCount))
+	js.Global().Set("getActiveParticleCount", js.FuncOf(getActiveParticleCount))
+	js.Global().Set("setQualityLevel", js.FuncOf(setQualityLevel))
+	
 	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Particle Symphony - ECS Showcase")
@@ -769,6 +956,7 @@ func main() {
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	game := NewGame()
+	gameInstance = game // Store for JS callbacks
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
