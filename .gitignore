@@ -1,0 +1,42 @@
+# Binaries
+particle-symphony
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of go coverage
+*.out
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# Debug
+debug
+__debug_bin*
+
+# Vendor (if not committed)
+# vendor/
+
+# Local config overrides
+config.local.json
