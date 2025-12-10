@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	screenWidth  = 1280
-	screenHeight = 720
+	screenWidth  = 960
+	screenHeight = 540
 )
 
-var maxParticles = 10000 // Configurable via UI
+var maxParticles = 7000 // Reduced for better performance
 
 // Particle represents a single particle entity
 type Particle struct {
@@ -374,10 +374,10 @@ func NewGame() *Game {
 		isMobile = contains(ua, "Mobile") || contains(ua, "Android") || contains(ua, "iPhone") || contains(ua, "iPad")
 	}
 
-	// Default quality is HIGH for best experience
-	defaultQuality := QualityHigh
+	// Default quality is MEDIUM for best balance
+	defaultQuality := QualityMedium
 	if isMobile {
-		defaultQuality = QualityMedium // Mobile gets Medium for performance
+		defaultQuality = QualityLow // Mobile gets Low for performance
 	}
 
 	g := &Game{
@@ -578,13 +578,14 @@ func (g *Game) Update() error {
 		g.cycleQuality()
 	}
 
+	// Toggle fullscreen with F11
+	if inpututil.IsKeyJustPressed(ebiten.KeyF11) {
+		g.toggleFullscreen()
+	}
+
 	// Exit fullscreen with ESC or F key
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || inpututil.IsKeyJustPressed(ebiten.KeyF) {
-		doc := js.Global().Get("document")
-		fsElement := doc.Get("fullscreenElement")
-		if !fsElement.IsNull() && !fsElement.IsUndefined() {
-			doc.Call("exitFullscreen")
-		}
+		g.exitFullscreen()
 	}
 
 	// Spawn with quality-adjusted rate
@@ -693,6 +694,64 @@ func (g *Game) cycleQuality() {
 	g.qualitySettings = qualityPresets[g.quality]
 }
 
+// exitFullscreen exits browser fullscreen mode with cross-browser support
+func (g *Game) exitFullscreen() {
+	doc := js.Global().Get("document")
+
+	// Check if in fullscreen
+	fsElement := doc.Get("fullscreenElement")
+	if fsElement.IsNull() || fsElement.IsUndefined() {
+		fsElement = doc.Get("webkitFullscreenElement")
+	}
+	if fsElement.IsNull() || fsElement.IsUndefined() {
+		fsElement = doc.Get("mozFullScreenElement")
+	}
+	if fsElement.IsNull() || fsElement.IsUndefined() {
+		fsElement = doc.Get("msFullscreenElement")
+	}
+
+	if !fsElement.IsNull() && !fsElement.IsUndefined() {
+		// Exit fullscreen with cross-browser support
+		if !doc.Get("exitFullscreen").IsUndefined() {
+			doc.Call("exitFullscreen")
+		} else if !doc.Get("webkitExitFullscreen").IsUndefined() {
+			doc.Call("webkitExitFullscreen")
+		} else if !doc.Get("mozCancelFullScreen").IsUndefined() {
+			doc.Call("mozCancelFullScreen")
+		} else if !doc.Get("msExitFullscreen").IsUndefined() {
+			doc.Call("msExitFullscreen")
+		}
+	}
+}
+
+// toggleFullscreen toggles browser fullscreen mode
+func (g *Game) toggleFullscreen() {
+	doc := js.Global().Get("document")
+
+	// Check if in fullscreen
+	fsElement := doc.Get("fullscreenElement")
+	if fsElement.IsNull() || fsElement.IsUndefined() {
+		fsElement = doc.Get("webkitFullscreenElement")
+	}
+
+	if !fsElement.IsNull() && !fsElement.IsUndefined() {
+		// Exit fullscreen
+		g.exitFullscreen()
+	} else {
+		// Enter fullscreen
+		elem := doc.Get("documentElement")
+		if !elem.Get("requestFullscreen").IsUndefined() {
+			elem.Call("requestFullscreen")
+		} else if !elem.Get("webkitRequestFullscreen").IsUndefined() {
+			elem.Call("webkitRequestFullscreen")
+		} else if !elem.Get("mozRequestFullScreen").IsUndefined() {
+			elem.Call("mozRequestFullScreen")
+		} else if !elem.Get("msRequestFullscreen").IsUndefined() {
+			elem.Call("msRequestFullscreen")
+		}
+	}
+}
+
 func (g *Game) nextPreset() {
 	g.switchPreset((g.currentPreset + 1) % len(presets))
 }
@@ -742,7 +801,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrint(screen, info)
 
 		// Controls help
-		helpText := "Q: Quality | M: Mute | 1-5: Presets"
+		helpText := "Q: Quality | M: Mute | F11: Fullscreen | ESC: Exit | 1-5: Presets"
 		if g.isMobile {
 			helpText = "Tap: Attract | 2-Finger: Repel | Double-Tap: Lock"
 		}

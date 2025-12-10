@@ -891,3 +891,20 @@ func TestRenderSystem_SetOnParticleChange(t *testing.T) {
 		t.Error("SetOnParticleChange did not set callback")
 	}
 }
+
+// TestRenderSystem_FullscreenState tests the fullscreen state initialization.
+func TestRenderSystem_FullscreenState(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+	// Should start in windowed mode
+	if sys.isFullscreen {
+		t.Error("RenderSystem should start in windowed mode, not fullscreen")
+	}
+}
+
+// TestRenderSystem_DefaultQuality tests that default quality is Medium for performance.
+func TestRenderSystem_DefaultQuality(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+	if sys.quality.Level != premium.QualityMedium {
+		t.Errorf("Default quality should be Medium, got %s", sys.quality.Level.String())
+	}
+}

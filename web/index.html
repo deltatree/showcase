@@ -516,6 +516,32 @@
     </style>
 </head>
 <body>
+    <!-- EXIT FULLSCREEN BUTTON - Outside all containers for maximum visibility -->
+    <div id="fullscreen-exit-overlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+        z-index: 2147483647;
+        display: none;
+        text-align: center;
+    ">
+        <button id="exit-fullscreen-btn" onclick="window.doExitFullscreen && window.doExitFullscreen()" style="
+            background: #ff0000;
+            color: white;
+            border: 4px solid white;
+            padding: 20px 40px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 4px 30px rgba(255,0,0,0.8);
+            text-shadow: 2px 2px 4px black;
+        ">❌ FULLSCREEN BEENDEN (ESC drücken)</button>
+    </div>
+
     <header>
         <div class="logo">🎆 Particle Symphony</div>
         <p class="tagline">Interactive ECS Particle Simulator in Go + WebAssembly</p>
@@ -753,6 +779,89 @@
         // Start loading
         init();
 
+        // Exit fullscreen helper function
+        function doExitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.webkitCancelFullScreen) {
+                document.webkitCancelFullScreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+        
+        // Make it globally available for inline onclick
+        window.doExitFullscreen = doExitFullscreen;
+        
+        // Check if we're in fullscreen
+        function isFullscreen() {
+            return !!(document.fullscreenElement || 
+                      document.webkitFullscreenElement || 
+                      document.webkitCurrentFullScreenElement ||
+                      document.mozFullScreenElement ||
+                      document.msFullscreenElement ||
+                      window.innerHeight === screen.height); // Fallback check
+        }
+
+        // GLOBAL ESC key handler - works even when canvas has focus
+        // Use both capture AND window.onkeydown for maximum compatibility
+        function handleEscKey(e) {
+            if (e.key === 'Escape') {
+                console.log('ESC pressed, fullscreen:', isFullscreen());
+                if (isFullscreen()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    doExitFullscreen();
+                    return false;
+                }
+            }
+        }
+        document.addEventListener('keydown', handleEscKey, true);
+        window.addEventListener('keydown', handleEscKey, true);
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape' && isFullscreen()) {
+                e.preventDefault();
+                doExitFullscreen();
+            }
+        }, true);
+
+        // Exit fullscreen overlay element
+        const exitOverlay = document.getElementById('fullscreen-exit-overlay');
+        const exitFsBtn = document.getElementById('exit-fullscreen-btn');
+        
+        // Exit fullscreen button handler (backup - onclick is also set inline)
+        exitFsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            doExitFullscreen();
+        });
+        // Touch support for mobile
+        exitFsBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            doExitFullscreen();
+        });
+
+        // Show/hide exit overlay based on fullscreen state
+        function updateExitButton() {
+            const fs = isFullscreen();
+            console.log('Fullscreen state:', fs);
+            exitOverlay.style.display = fs ? 'block' : 'none';
+        }
+        document.addEventListener('fullscreenchange', updateExitButton);
+        document.addEventListener('webkitfullscreenchange', updateExitButton);
+        document.addEventListener('mozfullscreenchange', updateExitButton);
+        document.addEventListener('MSFullscreenChange', updateExitButton);
+        // Safari/fallback - poll for fullscreen state every 200ms
+        setInterval(updateExitButton, 200);
+        // Also check immediately
+        updateExitButton();
+
         // Prevent context menu on right-click (for RMB repel)
         document.addEventListener('contextmenu', (e) => {
             if (e.target.tagName === 'CANVAS') {
@@ -760,15 +869,61 @@
             }
         });
         
-        // Prevent default touch behaviors on canvas
+        // SCROLL FIX: Allow scrolling over canvas, only prevent on interaction
+        // Canvas doesn't block scroll - only touch/click interactions are captured
+        let canvasActive = false;
+        
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                canvasActive = true;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            // Keep active for a short time to allow click interactions
+            setTimeout(() => { canvasActive = false; }, 100);
+        });
+        
+        // Allow wheel scroll to pass through to page
+        document.addEventListener('wheel', (e) => {
+            if (e.target.tagName === 'CANVAS' && !canvasActive) {
+                // Don't prevent default - let page scroll
+                return true;
+            }
+        }, { passive: true });
+        
+        // Prevent default touch behaviors on canvas ONLY during active touch
         document.addEventListener('touchstart', (e) => {
             if (e.target.tagName === 'CANVAS') {
-                e.preventDefault();
+                // Allow single brief touch to pass through for scroll detection
+                // Only prevent if it's a deliberate interaction (not scroll gesture)
+                if (e.touches.length > 1) {
+                    e.preventDefault(); // Multi-touch is interaction
+                }
+                // Single touch: let browser decide if it's scroll or tap
             }
         }, { passive: false });
         
+        // Touch move: only prevent if user is actively interacting (not scrolling)
+        let touchStartY = 0;
+        let isTouchInteraction = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.tagName === 'CANVAS') {
+                touchStartY = e.touches[0].clientY;
+                isTouchInteraction = false;
+            }
+        }, { passive: true });
+        
         document.addEventListener('touchmove', (e) => {
             if (e.target.tagName === 'CANVAS') {
+                const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+                // If vertical movement > 10px, it's a scroll gesture - allow it
+                if (deltaY > 10 && !isTouchInteraction) {
+                    return; // Let scroll happen
+                }
+                // Otherwise it's canvas interaction
+                isTouchInteraction = true;
                 e.preventDefault();
             }
         }, { passive: false });

@@ -30,6 +30,7 @@ type renderSystem struct {
 	palette          premium.ColorPalette
 	maxParticles     int32     // For slider
 	onParticleChange func(int) // Callback when slider changes
+	isFullscreen     bool      // Track fullscreen state
 }
 
 // NewRenderSystem creates a new render system for the specified window.
@@ -44,7 +45,7 @@ func NewRenderSystem(width, height int32, title string) *renderSystem {
 		title:        title,
 		showDebug:    true,
 		presetName:   "Fountain",
-		quality:      premium.GetQualitySettings(premium.QualityHigh), // Default to HIGH
+		quality:      premium.GetQualitySettings(premium.QualityMedium), // Default to MEDIUM for better performance
 		uiState:      premium.NewUIState(),
 		effects:      premium.NewScreenEffects(),
 		palette:      premium.GalaxyPalette,
@@ -64,6 +65,18 @@ func (s *renderSystem) Process(em ecs.EntityManager) (state int) {
 
 	if rl.IsKeyPressed(rl.KeyF3) {
 		s.showDebug = !s.showDebug
+	}
+
+	// Toggle fullscreen with F11 or F key
+	if rl.IsKeyPressed(rl.KeyF11) || rl.IsKeyPressed(rl.KeyF) {
+		s.isFullscreen = !s.isFullscreen
+		rl.ToggleFullscreen()
+	}
+
+	// ESC to exit fullscreen (not close app)
+	if rl.IsKeyPressed(rl.KeyEscape) && s.isFullscreen {
+		s.isFullscreen = false
+		rl.ToggleFullscreen()
 	}
 
 	// Toggle quality with Q key
@@ -136,7 +149,7 @@ func (s *renderSystem) Process(em ecs.EntityManager) (state int) {
 	// Controls hint with fade
 	if uiAlpha > 10 {
 		rl.DrawText(
-			"F3: Debug | Q: Quality | LMB: Attract | RMB: Repel | 1-5: Presets",
+			"F3: Debug | Q: Quality | F/F11: Fullscreen | ESC: Exit Fullscreen | 1-5: Presets",
 			10, s.height-30, 16, rl.NewColor(150, 150, 150, uiAlpha),
 		)
 	}
