@@ -88,10 +88,18 @@
                 0 0 60px rgba(102, 126, 234, 0.2),
                 0 0 120px rgba(118, 75, 162, 0.1);
             border: 1px solid rgba(255,255,255,0.1);
+            width: 1280px;
+            height: 720px;
+            max-width: 100%;
+            aspect-ratio: 16 / 9;
         }
         
         canvas {
             display: block;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 1280px;
+            max-height: 720px;
         }
         
         /* Loading State */
@@ -267,9 +275,14 @@
                 padding: 0.5rem;
             }
             
-            canvas {
-                max-width: 100%;
+            #game-container {
+                width: 100%;
                 height: auto;
+            }
+            
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
             }
             
             .controls-grid {
@@ -342,6 +355,10 @@
                 <div class="control-item">
                     <kbd>2×</kbd>
                     <span class="control-label">Lock Mode</span>
+                </div>
+                <div class="control-item">
+                    <kbd>M</kbd>
+                    <span class="control-label">Toggle Sound</span>
                 </div>
                 <div class="control-item">
                     <kbd>F3</kbd>

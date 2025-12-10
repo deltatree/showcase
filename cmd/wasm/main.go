@@ -14,7 +14,7 @@
 //   - Left Click: Attract particles
 //   - Right Click: Repel particles
 //   - 1-5: Switch between presets
-//   - F: Toggle fullscreen
+//   - M: Toggle sound mute
 package main
 
 import (
@@ -23,6 +23,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"syscall/js"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -94,6 +95,116 @@ var presets = []Preset{
 	},
 }
 
+// AudioEngine handles Web Audio API for sound effects
+type AudioEngine struct {
+	ctx       js.Value
+	muted     bool
+	volume    float64
+	lastNote  int
+	noteTimer float32
+}
+
+func NewAudioEngine() *AudioEngine {
+	ae := &AudioEngine{
+		muted:  false,
+		volume: 0.15,
+	}
+	// Create Web Audio context
+	audioCtx := js.Global().Get("AudioContext")
+	if audioCtx.IsUndefined() {
+		audioCtx = js.Global().Get("webkitAudioContext")
+	}
+	if !audioCtx.IsUndefined() {
+		ae.ctx = audioCtx.New()
+	}
+	return ae
+}
+
+func (ae *AudioEngine) IsReady() bool {
+	return !ae.ctx.IsUndefined() && !ae.ctx.IsNull()
+}
+
+func (ae *AudioEngine) Resume() {
+	if ae.IsReady() && ae.ctx.Get("state").String() == "suspended" {
+		ae.ctx.Call("resume")
+	}
+}
+
+func (ae *AudioEngine) PlayTone(freq float64, duration float64, volume float64) {
+	if ae.muted || !ae.IsReady() {
+		return
+	}
+	// Create oscillator for synth sound
+	osc := ae.ctx.Call("createOscillator")
+	gain := ae.ctx.Call("createGain")
+
+	osc.Get("frequency").Set("value", freq)
+	osc.Set("type", "sine")
+
+	now := ae.ctx.Get("currentTime").Float()
+	gain.Get("gain").Call("setValueAtTime", volume*ae.volume, now)
+	gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
+
+	osc.Call("connect", gain)
+	gain.Call("connect", ae.ctx.Get("destination"))
+	osc.Call("start", now)
+	osc.Call("stop", now+duration)
+}
+
+func (ae *AudioEngine) PlayAttract() {
+	ae.PlayTone(440, 0.1, 0.3) // A4
+}
+
+func (ae *AudioEngine) PlayRepel() {
+	ae.PlayTone(330, 0.1, 0.3) // E4
+}
+
+func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
+	// Play chord based on preset
+	notes := []float64{261.63, 329.63, 392.00, 493.88, 587.33} // C4, E4, G4, B4, D5
+	if presetIndex < len(notes) {
+		ae.PlayTone(notes[presetIndex], 0.2, 0.4)
+		ae.PlayTone(notes[presetIndex]*1.5, 0.15, 0.2) // Fifth
+	}
+}
+
+// Ambient sound generator - pentatonic scale based on particle count
+func (ae *AudioEngine) UpdateAmbient(particleCount int, dt float32) {
+	if ae.muted || !ae.IsReady() {
+		return
+	}
+	ae.noteTimer -= dt
+	if ae.noteTimer <= 0 {
+		// Pentatonic scale: C, D, E, G, A
+		scale := []float64{261.63, 293.66, 329.63, 392.00, 440.00}
+		octave := 1.0
+		if particleCount > 3000 {
+			octave = 2.0
+		}
+		noteIdx := (ae.lastNote + 1 + rand.Intn(3)) % len(scale)
+		ae.lastNote = noteIdx
+		freq := scale[noteIdx] * octave
+
+		// Volume based on particle density
+		vol := 0.05 + float64(particleCount)/20000.0*0.1
+		if vol > 0.15 {
+			vol = 0.15
+		}
+		ae.PlayTone(freq, 0.3, vol)
+
+		// Next note timing
+		ae.noteTimer = 0.3 + rand.Float32()*0.4
+	}
+}
+
+func (ae *AudioEngine) ToggleMute() {
+	ae.muted = !ae.muted
+}
+
+func (ae *AudioEngine) IsMuted() bool {
+	return ae.muted
+}
+
 // Game implements ebiten.Game interface
 type Game struct {
 	particles      []Particle
@@ -107,6 +218,9 @@ type Game struct {
 	showDebug      bool
 	lastClickTime  time.Time
 	activeCount    int
+	audio          *AudioEngine
+	lastAttract    bool
+	lastRepel      bool
 }
 
 func NewGame() *Game {
@@ -116,6 +230,7 @@ func NewGame() *Game {
 		currentPreset: 0,
 		showDebug:     true,
 		lockedMode:    0,
+		audio:         NewAudioEngine(),
 	}
 	g.preset = presets[0]
 	return g
@@ -181,6 +296,12 @@ func (g *Game) Update() error {
 
 	g.mouseX, g.mouseY = ebiten.CursorPosition()
 
+	// Resume audio context on first interaction (browser requirement)
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
+		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		g.audio.Resume()
+	}
+
 	now := time.Now()
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if now.Sub(g.lastClickTime) < 300*time.Millisecond {
@@ -215,6 +336,18 @@ func (g *Game) Update() error {
 		g.attractorMass = 0
 	}
 
+	// Play sound effects for attract/repel
+	isAttracting := g.attractorMass > 0
+	isRepelling := g.attractorMass < 0
+	if isAttracting && !g.lastAttract {
+		g.audio.PlayAttract()
+	}
+	if isRepelling && !g.lastRepel {
+		g.audio.PlayRepel()
+	}
+	g.lastAttract = isAttracting
+	g.lastRepel = isRepelling
+
 	keys := []ebiten.Key{ebiten.Key1, ebiten.Key2, ebiten.Key3, ebiten.Key4, ebiten.Key5}
 	for i, key := range keys {
 		if inpututil.IsKeyJustPressed(key) {
@@ -224,6 +357,11 @@ func (g *Game) Update() error {
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
 		g.showDebug = !g.showDebug
+	}
+
+	// Toggle mute with M key
+	if inpututil.IsKeyJustPressed(ebiten.KeyM) {
+		g.audio.ToggleMute()
 	}
 
 	g.spawnTimer += dt
@@ -296,6 +434,9 @@ func (g *Game) Update() error {
 		p.Radius = p.StartSize + (p.EndSize-p.StartSize)*t
 	}
 
+	// Update ambient sound based on particle count
+	g.audio.UpdateAmbient(g.activeCount, dt)
+
 	return nil
 }
 
@@ -307,6 +448,7 @@ func (g *Game) switchPreset(index int) {
 	if index < 0 || index >= len(presets) {
 		return
 	}
+	g.audio.PlayPresetChange(index)
 	g.currentPreset = index
 	g.preset = presets[index]
 	for i := range g.particles {
@@ -327,15 +469,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	if g.showDebug {
-		info := fmt.Sprintf("FPS: %.0f\nParticles: %d\nPreset: %s\nMouse: (%d, %d)",
-			ebiten.ActualFPS(), g.activeCount, g.preset.Name, g.mouseX, g.mouseY)
+		soundStatus := "🔊 ON"
+		if g.audio.IsMuted() {
+			soundStatus = "🔇 MUTED"
+		}
+		info := fmt.Sprintf("FPS: %.0f\nParticles: %d\nPreset: %s\nSound: %s\nMouse: (%d, %d)",
+			ebiten.ActualFPS(), g.activeCount, g.preset.Name, soundStatus, g.mouseX, g.mouseY)
 		if g.lockedMode == 1 {
 			info += "\n[ATTRACT LOCKED]"
 		} else if g.lockedMode == -1 {
 			info += "\n[REPEL LOCKED]"
 		}
 		ebitenutil.DebugPrint(screen, info)
-		ebitenutil.DebugPrintAt(screen, "F3: Toggle Debug | LMB: Attract | RMB: Repel | 1-5: Presets | 2x Click: Lock", 10, screenHeight-20)
+		ebitenutil.DebugPrintAt(screen, "F3: Debug | M: Mute | LMB: Attract | RMB: Repel | 1-5: Presets", 10, screenHeight-20)
 	}
 }
 
@@ -357,13 +503,16 @@ func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
+	// Fixed logical size - actual rendering size is controlled by CSS
 	return screenWidth, screenHeight
 }
 
 func main() {
+	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Particle Symphony - ECS Showcase")
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
+	// Disable resizing mode for WASM to prevent fullscreen issues
+	// ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
 	game := NewGame()
 	if err := ebiten.RunGame(game); err != nil {
