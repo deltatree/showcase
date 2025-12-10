@@ -10,7 +10,14 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// emitterSystem spawns new particles.
+// EmitterSystem spawns new particles at configurable rates.
+// It supports multiple spawn patterns and fully customizable particle
+// properties including colors, sizes, velocities, and lifetimes.
+//
+// Spawn patterns:
+//   - "random": particles spawn at random screen positions
+//   - "center": particles spawn near screen center
+//   - "emitter": particles spawn at emitter entity positions
 type emitterSystem struct {
 	spawnRate    int
 	spawnTimer   float32
@@ -19,7 +26,7 @@ type emitterSystem struct {
 	height       float32
 	rng          *rand.Rand
 	idCounter    int64
-	// Configurable spawn parameters
+	// Configurable spawn parameters set by presets
 	StartColorR, StartColorG, StartColorB, StartColorA uint8
 	EndColorR, EndColorG, EndColorB, EndColorA         uint8
 	MinSize, MaxSize                                   float32
@@ -28,7 +35,12 @@ type emitterSystem struct {
 	SpawnPattern                                       string
 }
 
-// NewEmitterSystem creates a new emitter system.
+// NewEmitterSystem creates a new emitter system with default parameters.
+//
+// Parameters:
+//   - spawnRate: particles per second (0 disables spawning)
+//   - maxParticles: maximum concurrent particles
+//   - width, height: screen dimensions for spawn bounds
 func NewEmitterSystem(spawnRate, maxParticles int, width, height float32) *emitterSystem {
 	return &emitterSystem{
 		spawnRate:    spawnRate,

@@ -6,7 +6,17 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// inputSystem handles mouse and keyboard input.
+// InputSystem handles mouse and keyboard input for interactive control.
+//
+// Mouse controls:
+//   - Left click (hold): attract particles toward cursor
+//   - Right click (hold): repel particles from cursor
+//   - Double-click left: toggle attract lock (continuous attraction)
+//   - Double-click right: toggle repel lock (continuous repulsion)
+//
+// Keyboard controls:
+//   - 1-5: switch between presets
+//   - F3: toggle debug overlay (handled by RenderSystem)
 type inputSystem struct {
 	mouseAttractorID string
 	currentPreset    int
@@ -15,7 +25,8 @@ type inputSystem struct {
 	lastClickTime    float64 // for double-click detection
 }
 
-// NewInputSystem creates a new input system.
+// NewInputSystem creates a new input system with a preset switcher callback.
+// The callback is invoked with the preset index (0-4) when keys 1-5 are pressed.
 func NewInputSystem(presetSwitcher func(int)) ecs.System {
 	return &inputSystem{
 		mouseAttractorID: "mouse-attractor",

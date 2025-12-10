@@ -7,9 +7,9 @@ project_name: 'showcase'
 user_name: 'Deltatree'
 date: '2025-12-10'
 yolo_mode: true
-totalEpics: 7
-totalStories: 28
-estimatedSprints: 4
+totalEpics: 8
+totalStories: 35
+estimatedSprints: 5
 ---
 
 # Epics & User Stories - Particle Symphony
@@ -25,10 +25,10 @@ estimatedSprints: 4
 
 | Metrik | Wert |
 |--------|------|
-| **Epics** | 7 |
-| **User Stories** | 28 |
-| **Story Points (geschätzt)** | 102 |
-| **Sprints (geschätzt)** | 4 |
+| **Epics** | 8 |
+| **User Stories** | 35 |
+| **Story Points (geschätzt)** | 127 |
+| **Sprints (geschätzt)** | 5 |
 
 ### Epic-Übersicht
 
@@ -41,6 +41,7 @@ estimatedSprints: 4
 | E-005 | Preset-System | 4 | 13 | 🟡 SHOULD |
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD |
 | E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST |
+| E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST |
 
 ---
 
@@ -1235,4 +1236,487 @@ Falls `raylib-go` WASM-Probleme macht:
 
 ---
 
-**🚀 YOLO MODE COMPLETE - 28 STORIES READY FOR IMPLEMENTATION!**
+# Epic E-008: Awesome-Go Listing Readiness
+
+**Beschreibung:** Vorbereitung des Projekts für die Aufnahme in die kuratierte [awesome-go](https://github.com/avelino/awesome-go) Liste - eine der wichtigsten Go-Ressourcen mit 160k+ GitHub Stars.
+
+**Business Value:** Listing in awesome-go erhöht massiv die Sichtbarkeit des Projekts und des `andygeiss/ecs` Frameworks. Es ist ein Qualitätssiegel für Go-Projekte.
+
+**Akzeptanzkriterien (aus awesome-go CONTRIBUTING.md):**
+- Mindestens 5 Monate Historie seit erstem Commit
+- Open-Source-Lizenz vorhanden
+- `go.mod` mit korrektem Module-Namen
+- Mindestens ein SemVer-Release (vX.Y.Z)
+- README und Dokumentation auf Englisch
+- Tests mit ≥80% Code Coverage
+- Go Report Card mit Grade A- oder besser
+- pkg.go.dev Dokumentation für alle öffentlichen APIs
+
+---
+
+## Story E-008-S01: English Documentation & README
+
+**Als** internationaler Entwickler  
+**möchte ich** eine vollständige englische Dokumentation  
+**damit** ich das Projekt verstehen und nutzen kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] README.md komplett auf Englisch
+- [ ] Project description, features, installation, usage
+- [ ] Screenshots/GIFs der Simulation
+- [ ] Quick Start Guide (5-Minuten-Setup)
+- [ ] Architecture overview mit Diagramm
+- [ ] Contributing guidelines
+- [ ] License section
+- [ ] Badges: Go Report Card, Coverage, License, Go Version
+
+**README Struktur:**
+```markdown
+# 🎵 Particle Symphony
+
+An interactive particle simulation showcasing the power of Entity-Component-System architecture in Go.
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/deltatree/showcase)](https://goreportcard.com/report/github.com/deltatree/showcase)
+[![codecov](https://codecov.io/gh/deltatree/showcase/graph/badge.svg)](https://codecov.io/gh/deltatree/showcase)
+[![Go Reference](https://pkg.go.dev/badge/github.com/deltatree/showcase.svg)](https://pkg.go.dev/github.com/deltatree/showcase)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+![Demo GIF](docs/demo.gif)
+
+## ✨ Features
+- 10,000+ particles at 60 FPS
+- Real-time physics simulation
+- Mouse interaction (attract/repel)
+- 5 visual presets
+- Built with andygeiss/ecs
+
+## 🚀 Quick Start
+...
+
+## 🏗️ Architecture
+...
+
+## 📖 Documentation
+...
+
+## 🤝 Contributing
+...
+
+## 📄 License
+MIT License - see [LICENSE](LICENSE)
+```
+
+**Definition of Done:**
+- [ ] README.md auf Englisch geschrieben
+- [ ] Alle Sections vollständig
+- [ ] GIF/Screenshots eingefügt
+- [ ] Badges funktionieren
+
+---
+
+## Story E-008-S02: Test Coverage ≥80%
+
+**Als** Contributor der awesome-go Liste  
+**möchte ich** eine Testabdeckung von mindestens 80%  
+**damit** das Projekt die Qualitätsstandards erfüllt
+
+**Story Points:** 8
+
+**Akzeptanzkriterien:**
+- [ ] Unit Tests für alle Components
+- [ ] Unit Tests für alle Systems (wo möglich)
+- [ ] Integration Tests für Engine-Setup
+- [ ] Test Coverage ≥80% gemessen mit `go test -coverprofile`
+- [ ] Coverage Report via Codecov/Coveralls
+- [ ] Keine flaky tests
+
+**Zu testende Packages:**
+| Package | Ziel-Coverage | Priorität |
+|---------|--------------|-----------|
+| `components/` | 90% | 🔴 |
+| `systems/` | 75% | 🟡 |
+| `presets/` | 85% | 🟡 |
+| `internal/config/` | 90% | 🔴 |
+
+**Test-Beispiele für Components:**
+```go
+func TestPosition_Magnitude(t *testing.T) {
+    p := NewPosition().WithX(3).WithY(4)
+    if p.Magnitude() != 5.0 {
+        t.Errorf("Expected 5.0, got %f", p.Magnitude())
+    }
+}
+
+func TestLifetime_Progress(t *testing.T) {
+    l := NewLifetime(10.0)
+    l.Age = 5.0
+    if l.Progress() != 0.5 {
+        t.Errorf("Expected 0.5, got %f", l.Progress())
+    }
+}
+```
+
+**Definition of Done:**
+- [ ] `go test ./... -cover` zeigt ≥80%
+- [ ] Coverage Badge in README
+- [ ] CI Pipeline prüft Coverage
+
+---
+
+## Story E-008-S03: Go Report Card Grade A
+
+**Als** Quality-bewusster Entwickler  
+**möchte ich** einen Go Report Card Score von A- oder besser  
+**damit** das Projekt als hochwertig anerkannt wird
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] Keine `gofmt` Violations
+- [ ] Keine `go vet` Warnings
+- [ ] Keine `golint` Issues (oder begründete Ausnahmen)
+- [ ] Keine `ineffassign` Findings
+- [ ] Keine `misspell` Findings
+- [ ] Score mindestens A- auf goreportcard.com
+
+**Prüf-Kommandos:**
+```bash
+# Format Check
+gofmt -l -s .
+
+# Vet Check
+go vet ./...
+
+# StaticCheck
+staticcheck ./...
+
+# Ineffassign
+ineffassign ./...
+
+# Misspell
+misspell -error .
+```
+
+**Definition of Done:**
+- [ ] Alle Checks lokal bestanden
+- [ ] goreportcard.com zeigt A- oder besser
+- [ ] Badge in README aktualisiert
+
+---
+
+## Story E-008-S04: pkg.go.dev Documentation
+
+**Als** Go-Entwickler  
+**möchte ich** vollständige API-Dokumentation auf pkg.go.dev  
+**damit** ich die öffentlichen APIs verstehen kann
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Alle öffentlichen Typen haben Doc-Comments
+- [ ] Alle öffentlichen Funktionen haben Doc-Comments
+- [ ] Package-Level Doc-Comments für jedes Package
+- [ ] Beispiele (Examples) für wichtige Funktionen
+- [ ] pkg.go.dev Seite ist erreichbar und vollständig
+
+**Doc-Comment Format:**
+```go
+// Position represents the 2D position of an entity in world coordinates.
+// It implements the ecs.Component interface.
+type Position struct {
+    X, Y float64
+}
+
+// NewPosition creates a new Position component at origin (0, 0).
+func NewPosition() *Position {
+    return &Position{}
+}
+
+// WithX sets the X coordinate and returns the Position for chaining.
+func (p *Position) WithX(x float64) *Position {
+    p.X = x
+    return p
+}
+
+// Magnitude returns the distance from origin to the position.
+func (p *Position) Magnitude() float64 {
+    return math.Sqrt(p.X*p.X + p.Y*p.Y)
+}
+
+// Example demonstrates creating and using a Position component.
+func ExamplePosition() {
+    pos := NewPosition().WithX(100).WithY(200)
+    fmt.Printf("Position: (%.0f, %.0f)\n", pos.X, pos.Y)
+    // Output: Position: (100, 200)
+}
+```
+
+**Definition of Done:**
+- [ ] Alle Public APIs dokumentiert
+- [ ] pkg.go.dev zeigt Dokumentation
+- [ ] Mindestens 3 runnable Examples
+
+---
+
+## Story E-008-S05: SemVer Release v1.0.0
+
+**Als** Nutzer des Projekts  
+**möchte ich** stabile, versionierte Releases  
+**damit** ich eine zuverlässige Version referenzieren kann
+
+**Story Points:** 2
+
+**Akzeptanzkriterien:**
+- [ ] Git Tag `v1.0.0` erstellt und gepusht
+- [ ] GitHub Release mit Release Notes
+- [ ] CHANGELOG.md mit Änderungshistorie
+- [ ] `go.mod` Modul-Pfad korrekt
+
+**Release Notes Template:**
+```markdown
+# v1.0.0 - Initial Release 🎉
+
+## ✨ Features
+- Interactive particle simulation with 10,000+ particles
+- Real-time physics engine with gravity and damping
+- Mouse interaction (attract/repel particles)
+- 5 visual presets: Galaxy, Firework, Swarm, Fountain, Chaos
+- WebAssembly support for browser deployment
+- Built on andygeiss/ecs framework
+
+## 📦 Installation
+\`\`\`bash
+go get github.com/deltatree/showcase@v1.0.0
+\`\`\`
+
+## 🎮 Try it Online
+Visit https://deltatree.github.io/showcase/
+
+## 📖 Documentation
+- [README](https://github.com/deltatree/showcase/blob/v1.0.0/README.md)
+- [Architecture](https://github.com/deltatree/showcase/blob/v1.0.0/docs/architecture.md)
+- [pkg.go.dev](https://pkg.go.dev/github.com/deltatree/showcase)
+```
+
+**Definition of Done:**
+- [ ] Tag gepusht
+- [ ] GitHub Release erstellt
+- [ ] `go get ...@v1.0.0` funktioniert
+
+---
+
+## Story E-008-S06: MIT License File
+
+**Als** potenzieller Nutzer  
+**möchte ich** eine klare Open-Source-Lizenz  
+**damit** ich weiß, wie ich das Projekt nutzen darf
+
+**Story Points:** 1
+
+**Akzeptanzkriterien:**
+- [ ] `LICENSE` Datei im Root-Verzeichnis
+- [ ] MIT License Text (awesome-go akzeptiert)
+- [ ] Copyright Jahr und Name korrekt
+- [ ] License Badge in README
+
+**LICENSE Inhalt:**
+```
+MIT License
+
+Copyright (c) 2025 Deltatree
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+**Definition of Done:**
+- [ ] LICENSE Datei existiert
+- [ ] GitHub erkennt Lizenz automatisch
+
+---
+
+## Story E-008-S07: Awesome-Go Pull Request Preparation
+
+**Als** Projekt-Maintainer  
+**möchte ich** alle PR-Anforderungen vorbereitet haben  
+**damit** die Submission reibungslos verläuft
+
+**Story Points:** 2
+
+**Akzeptanzkriterien:**
+- [ ] Alle Quality-Links gesammelt und getestet
+- [ ] PR-Body vorbereitet mit allen erforderlichen Links
+- [ ] Richtige Kategorie identifiziert (Game Development)
+- [ ] Alphabetische Einordnung geprüft
+- [ ] Description nach Guidelines formuliert
+
+**PR-Body Template:**
+```markdown
+Forge link: https://github.com/deltatree/showcase
+pkg.go.dev: https://pkg.go.dev/github.com/deltatree/showcase
+goreportcard.com: https://goreportcard.com/report/github.com/deltatree/showcase
+Coverage: https://app.codecov.io/gh/deltatree/showcase
+
+---
+
+This project is an interactive particle simulation showcasing the ECS (Entity-Component-System) pattern in Go using the andygeiss/ecs framework. It demonstrates:
+
+- Real-time physics with 10,000+ particles at 60 FPS
+- Clean ECS architecture with data-oriented design
+- WebAssembly deployment for browser access
+
+The project has been actively developed and maintained, with comprehensive documentation and test coverage.
+```
+
+**Eintrag für README.md (awesome-go):**
+```markdown
+- [particle-symphony](https://github.com/deltatree/showcase) - Interactive particle simulation demonstrating ECS architecture with real-time physics and WebAssembly support.
+```
+
+**Kategorie:** Game Development (alphabetisch zwischen "Pi" und "Pitaya")
+
+**Definition of Done:**
+- [ ] Alle Links validiert
+- [ ] PR kann eingereicht werden
+- [ ] 5-Monate-Wartezeit beachtet
+
+---
+
+# Aktualisierte Übersicht
+
+| Metrik | Alt | Neu |
+|--------|-----|-----|
+| **Epics** | 7 | 8 |
+| **User Stories** | 28 | 35 |
+| **Story Points (geschätzt)** | 102 | 127 |
+| **Sprints (geschätzt)** | 4 | 5 |
+
+### Epic-Übersicht (aktualisiert)
+
+| Epic | Titel | Stories | Punkte | Priorität |
+|------|-------|---------|--------|-----------|
+| E-001 | ECS Foundation | 5 | 18 | 🔴 MUST |
+| E-002 | Physik-Engine | 4 | 15 | 🔴 MUST |
+| E-003 | Interaktivität | 4 | 13 | 🔴 MUST |
+| E-004 | Visual Effects | 4 | 16 | 🟡 SHOULD |
+| E-005 | Preset-System | 4 | 13 | 🟡 SHOULD |
+| E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD |
+| E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST |
+| **E-008** | **Awesome-Go Listing** | **7** | **25** | **🔴 MUST** |
+
+---
+
+# Sprint 5: Awesome-Go Readiness (Woche 5)
+
+| Story | Epic | Points | Priorität |
+|-------|------|--------|-----------|
+| E-008-S06 | Awesome-Go | 1 | 🔴 |
+| E-008-S03 | Awesome-Go | 3 | 🔴 |
+| E-008-S01 | Awesome-Go | 5 | 🔴 |
+| E-008-S04 | Awesome-Go | 4 | 🔴 |
+| E-008-S02 | Awesome-Go | 8 | 🔴 |
+| E-008-S05 | Awesome-Go | 2 | 🔴 |
+| E-008-S07 | Awesome-Go | 2 | 🔴 |
+| **Total** | | **25** | |
+
+**Sprint Goal:** Projekt erfüllt alle awesome-go Qualitätsstandards und ist bereit für PR-Submission.
+
+**⚠️ WICHTIG:** Die awesome-go Guidelines erfordern **mindestens 5 Monate Historie** seit dem ersten Commit. Die PR-Submission kann erst nach Erreichen dieser Zeitspanne erfolgen!
+
+---
+
+# E-008 Dependency Graph
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 AWESOME-GO LISTING DEPENDENCIES                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  E-001 bis E-007 (Projekt funktioniert) ────┐                   │
+│                                              │                   │
+│                                              ▼                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              E-008: AWESOME-GO READINESS                  │  │
+│  ├───────────────────────────────────────────────────────────┤  │
+│  │                                                           │  │
+│  │   E-008-S06 (LICENSE)          ──────────┐               │  │
+│  │           │                              │               │  │
+│  │           │  (parallel)                  │               │  │
+│  │           │                              │               │  │
+│  │   E-008-S03 (Go Report Card)   ──────────┤               │  │
+│  │           │                              │               │  │
+│  │           │  (parallel)                  │               │  │
+│  │           │                              │               │  │
+│  │   E-008-S01 (English README)   ──────────┤               │  │
+│  │           │                              │               │  │
+│  │           │  (parallel)                  │               │  │
+│  │           │                              │               │  │
+│  │   E-008-S04 (pkg.go.dev Docs)  ──────────┤               │  │
+│  │           │                              │               │  │
+│  │           │  (parallel)                  │               │  │
+│  │           │                              │               │  │
+│  │   E-008-S02 (Test Coverage)    ──────────┤               │  │
+│  │                                          │               │  │
+│  │                                          ▼               │  │
+│  │                              E-008-S05 (v1.0.0 Release)  │  │
+│  │                                          │               │  │
+│  │                                          ▼               │  │
+│  │                              E-008-S07 (PR Preparation)  │  │
+│  │                                          │               │  │
+│  └──────────────────────────────────────────┼───────────────┘  │
+│                                              │                   │
+│                                              ▼                   │
+│                        ⏳ WARTE 5 MONATE SEIT ERSTEM COMMIT      │
+│                                              │                   │
+│                                              ▼                   │
+│                  🎉 PR AN AWESOME-GO EINREICHEN                  │
+│        https://github.com/avelino/awesome-go/pulls               │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# Awesome-Go Submission Checklist
+
+**Vor PR-Einreichung alle Punkte prüfen:**
+
+- [ ] **Repository Age:** ≥5 Monate seit erstem Commit
+- [ ] **License:** MIT License in `LICENSE` Datei
+- [ ] **go.mod:** Korrekter Modul-Pfad
+- [ ] **Release:** Mindestens v1.0.0 Tag
+- [ ] **README:** Englisch, vollständig, mit Badges
+- [ ] **Documentation:** pkg.go.dev zeigt alle Public APIs
+- [ ] **Tests:** Coverage ≥80%
+- [ ] **Quality:** Go Report Card Grade A- oder besser
+- [ ] **Category:** Game Development (korrekt alphabetisch)
+- [ ] **Description:** Endet mit Punkt, nicht promotional
+
+**PR Links für Body:**
+```
+Forge link: https://github.com/deltatree/showcase
+pkg.go.dev: https://pkg.go.dev/github.com/deltatree/showcase  
+goreportcard.com: https://goreportcard.com/report/github.com/deltatree/showcase
+Coverage: https://app.codecov.io/gh/deltatree/showcase
+```
+
+---
+
+**🚀 YOLO MODE COMPLETE - 35 STORIES READY FOR IMPLEMENTATION!**

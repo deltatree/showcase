@@ -1,3 +1,27 @@
+// Package systems provides all ECS system implementations for Particle Symphony.
+//
+// Systems contain the logic that operates on entities with specific component combinations.
+// Each system implements the ecs.System interface with Setup(), Process(), and Teardown() methods.
+//
+// # System Execution Order
+//
+// Systems are executed in registration order each frame:
+//   1. InputSystem - handles mouse/keyboard input
+//   2. EmitterSystem - spawns new particles
+//   3. GravitySystem - applies attractor forces
+//   4. PhysicsSystem - updates positions and velocities
+//   5. LifetimeSystem - ages and removes expired entities
+//   6. ColorSystem - interpolates colors and sizes
+//   7. RenderSystem - draws entities to screen
+//
+// # Creating Custom Systems
+//
+// Implement the ecs.System interface:
+//
+//	type mySystem struct{}
+//	func (s *mySystem) Setup() {}
+//	func (s *mySystem) Process(em ecs.EntityManager) int { return ecs.StateEngineContinue }
+//	func (s *mySystem) Teardown() {}
 package systems
 
 import (
@@ -6,7 +30,12 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// physicsSystem handles movement, velocity, and screen wrapping.
+// PhysicsSystem handles movement, velocity, and screen wrapping for entities.
+// It integrates acceleration into velocity, applies damping to simulate friction,
+// clamps velocity to a maximum, and updates positions based on velocity.
+//
+// When entities move off-screen, they wrap around to the opposite edge,
+// creating a toroidal topology.
 type physicsSystem struct {
 	damping     float32
 	maxVelocity float32
@@ -14,7 +43,12 @@ type physicsSystem struct {
 	height      float32
 }
 
-// NewPhysicsSystem creates a new physics system.
+// NewPhysicsSystem creates a new physics system with configurable parameters.
+//
+// Parameters:
+//   - damping: velocity multiplier per frame (0.99 = 1% friction)
+//   - maxVelocity: maximum speed in pixels per second
+//   - width, height: screen dimensions for edge wrapping
 func NewPhysicsSystem(damping, maxVelocity, width, height float32) ecs.System {
 	return &physicsSystem{
 		damping:     damping,

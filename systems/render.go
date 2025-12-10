@@ -8,7 +8,16 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// renderSystem handles window management and rendering.
+// RenderSystem handles window management and rendering of all visible entities.
+// It initializes the raylib window, handles window close events, and draws
+// particles as filled circles with their current color and size.
+//
+// Debug overlay (toggle with F3) displays:
+//   - FPS counter
+//   - Active entity count
+//   - Current preset name
+//   - Mouse coordinates
+//   - Control hints
 type renderSystem struct {
 	width, height int32
 	title         string
@@ -16,7 +25,11 @@ type renderSystem struct {
 	presetName    string
 }
 
-// NewRenderSystem creates a new render system.
+// NewRenderSystem creates a new render system for the specified window.
+//
+// Parameters:
+//   - width, height: window dimensions in pixels
+//   - title: window title displayed in the title bar
 func NewRenderSystem(width, height int32, title string) *renderSystem {
 	return &renderSystem{
 		width:      width,

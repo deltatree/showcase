@@ -1,8 +1,15 @@
 package components
 
-// Position represents the 2D coordinates of an entity.
+// Position represents the 2D coordinates of an entity in world space.
+// It is the most fundamental component, required for any visible entity.
+//
+// Position uses float32 for coordinates to balance precision with performance,
+// matching raylib's coordinate system.
 type Position struct {
-	X, Y float32
+	// X is the horizontal position in pixels from the left edge.
+	X float32
+	// Y is the vertical position in pixels from the top edge.
+	Y float32
 }
 
 // Mask returns the component mask for Position.

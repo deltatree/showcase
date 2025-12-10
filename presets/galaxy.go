@@ -9,10 +9,14 @@ import (
 	"github.com/deltatree/showcase/internal/config"
 )
 
-// galaxyPreset creates a spiral galaxy simulation.
+// GalaxyPreset creates a spiral galaxy simulation with orbital particle motion.
+// Particles are arranged in a spiral pattern with tangential velocities,
+// creating a rotating galaxy effect. Works beautifully with a central attractor.
+//
+// Keyboard: Press 1 to activate this preset.
 type galaxyPreset struct{}
 
-// NewGalaxyPreset creates a new galaxy preset.
+// NewGalaxyPreset creates a new galaxy preset instance.
 func NewGalaxyPreset() Preset {
 	return &galaxyPreset{}
 }

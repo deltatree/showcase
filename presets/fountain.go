@@ -8,10 +8,15 @@ import (
 	"github.com/deltatree/showcase/internal/config"
 )
 
-// fountainPreset creates a fountain effect.
+// FountainPreset creates a water fountain shooting upwards with gravity.
+// Particles spawn at the bottom center with upward velocity and fall
+// under gravity, creating a realistic fountain arc. Blue-tinted particles
+// simulate water droplets.
+//
+// Keyboard: Press 4 to activate this preset.
 type fountainPreset struct{}
 
-// NewFountainPreset creates a new fountain preset.
+// NewFountainPreset creates a new fountain preset instance.
 func NewFountainPreset() Preset {
 	return &fountainPreset{}
 }

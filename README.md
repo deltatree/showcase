@@ -1,8 +1,12 @@
 # Particle Symphony 🎵✨
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/deltatree/showcase)](https://goreportcard.com/report/github.com/deltatree/showcase)
+[![Go Reference](https://pkg.go.dev/badge/github.com/deltatree/showcase.svg)](https://pkg.go.dev/github.com/deltatree/showcase)
+[![codecov](https://codecov.io/gh/deltatree/showcase/graph/badge.svg)](https://codecov.io/gh/deltatree/showcase)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Deploy to GitHub Pages](https://github.com/deltatree/showcase/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/deltatree/showcase/actions/workflows/deploy-pages.yml)
 
-A mesmerizing particle simulation showcasing the power and elegance of **[andygeiss/ecs](https://github.com/andygeiss/ecs)** – a lightweight, high-performance Entity Component System framework for Go.
+An interactive particle simulation showcasing the power and elegance of **[andygeiss/ecs](https://github.com/andygeiss/ecs)** – a lightweight, high-performance Entity Component System framework for Go.
 
 > **🎯 This project exists to demonstrate how simple yet powerful ECS architecture can be.** Watch thousands of particles dance, interact, and create emergent beauty – all powered by clean, modular ECS patterns.
 
@@ -119,7 +123,17 @@ This project wouldn't exist without these amazing open-source projects:
 
 ## 📝 License
 
-MIT License - feel free to use this as a learning resource or starting point for your own ECS projects.
+MIT License - see [LICENSE](LICENSE) for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 

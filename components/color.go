@@ -1,11 +1,18 @@
 package components
 
-// Color represents the RGBA color of an entity with gradient support.
+// Color represents the RGBA color of an entity with gradient interpolation support.
+// It stores both the current color and start/end colors for smooth transitions
+// over the entity's lifetime.
+//
+// The color system interpolates between StartRGBA and EndRGBA based on
+// the entity's Lifetime progress, creating smooth fade effects.
 type Color struct {
+	// R, G, B, A represent the current RGBA color values (0-255).
 	R, G, B, A uint8
-	// For gradient interpolation
+	// StartR, StartG, StartB, StartA are the initial colors at spawn.
 	StartR, StartG, StartB, StartA uint8
-	EndR, EndG, EndB, EndA         uint8
+	// EndR, EndG, EndB, EndA are the final colors at lifetime end.
+	EndR, EndG, EndB, EndA uint8
 }
 
 // Mask returns the component mask for Color.

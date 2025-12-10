@@ -7,10 +7,18 @@ import (
 	"github.com/deltatree/showcase/components"
 )
 
-// gravitySystem applies gravitational forces from attractors to particles.
+// GravitySystem applies gravitational forces from attractors to particles.
+// It implements an inverse-square law: force = mass / distance² * scale.
+//
+// Each frame, particle accelerations are reset and recalculated based on
+// all active attractors. Multiple attractors create additive gravitational
+// fields enabling complex orbital dynamics.
+//
+// Minimum distance is clamped to prevent infinite forces at close range.
 type gravitySystem struct{}
 
 // NewGravitySystem creates a new gravity system.
+// The gravity calculation uses a fixed scale factor of 500.
 func NewGravitySystem() ecs.System {
 	return &gravitySystem{}
 }

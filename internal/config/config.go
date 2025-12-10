@@ -1,4 +1,27 @@
-// Package config provides configuration loading and default values.
+// Package config provides configuration loading and management for Particle Symphony.
+//
+// Configuration can be loaded from a JSON file or use sensible defaults.
+// The Config struct contains all tunable parameters organized into logical groups:
+// Window, Particles, and Physics.
+//
+// # Loading Configuration
+//
+// Try loading from file with fallback to defaults:
+//
+//	cfg, err := config.Load("config.json")
+//	if err != nil {
+//	    cfg = config.Default()
+//	}
+//
+// # Configuration File Format
+//
+// JSON format with the following structure:
+//
+//	{
+//	    "window": { "width": 1280, "height": 720, "title": "Particle Symphony" },
+//	    "particles": { "maxCount": 10000, "spawnRate": 100 },
+//	    "physics": { "damping": 0.99, "maxVelocity": 500 }
+//	}
 package config
 
 import (

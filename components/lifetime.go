@@ -1,10 +1,18 @@
 package components
 
-// Lifetime represents the lifespan of an entity.
+// Lifetime represents the lifespan of an entity, enabling automatic cleanup
+// and time-based animations.
+//
+// The lifetime system increments Age each frame and marks entities as Expired
+// when Age >= TTL, triggering their removal from the entity manager.
+// The Progress() method returns the normalized age (0.0 to 1.0) for interpolation.
 type Lifetime struct {
-	TTL     float32 // Time To Live in seconds
-	Age     float32 // Current age in seconds
-	Expired bool    // Marked for removal
+	// TTL (Time To Live) is the maximum lifespan in seconds.
+	TTL float32
+	// Age is the current age in seconds, incremented each frame.
+	Age float32
+	// Expired is set to true when the entity should be removed.
+	Expired bool
 }
 
 // Mask returns the component mask for Lifetime.

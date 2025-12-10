@@ -1,5 +1,20 @@
 //go:build js && wasm
 
+// Particle Symphony - WebAssembly Version
+//
+// This is the WebAssembly entry point for Particle Symphony, enabling
+// the particle simulation to run in web browsers. It uses Ebitengine
+// for rendering instead of raylib for browser compatibility.
+//
+// Build: GOOS=js GOARCH=wasm go build -o main.wasm ./cmd/wasm
+// Serve: Serve the web/ directory with index.html and wasm_exec.js
+//
+// Controls (same as native):
+//   - Mouse: Move to guide particles
+//   - Left Click: Attract particles
+//   - Right Click: Repel particles
+//   - 1-5: Switch between presets
+//   - F: Toggle fullscreen
 package main
 
 import (

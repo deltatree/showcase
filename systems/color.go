@@ -5,10 +5,17 @@ import (
 	"github.com/deltatree/showcase/components"
 )
 
-// colorSystem interpolates colors and sizes based on lifetime.
+// ColorSystem interpolates colors and sizes based on particle lifetime.
+// It performs linear interpolation (lerp) from start values to end values
+// as t progresses from 0.0 (spawn) to 1.0 (death).
+//
+// This enables smooth visual transitions like:
+//   - Fire effects: orange → red → transparent
+//   - Sparks: large bright → small dim
+//   - Trails: visible → invisible
 type colorSystem struct{}
 
-// NewColorSystem creates a new color system.
+// NewColorSystem creates a new color interpolation system.
 func NewColorSystem() ecs.System {
 	return &colorSystem{}
 }

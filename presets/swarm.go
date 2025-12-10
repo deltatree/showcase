@@ -8,10 +8,15 @@ import (
 	"github.com/deltatree/showcase/internal/config"
 )
 
-// swarmPreset creates swarm-like behavior.
+// SwarmPreset creates organic swarm-like behavior following the mouse.
+// Particles are initialized near the center with random velocities,
+// creating a cohesive swarm that responds to attractor forces.
+// Green-tinted particles suggest organic, bioluminescent creatures.
+//
+// Keyboard: Press 3 to activate this preset.
 type swarmPreset struct{}
 
-// NewSwarmPreset creates a new swarm preset.
+// NewSwarmPreset creates a new swarm preset instance.
 func NewSwarmPreset() Preset {
 	return &swarmPreset{}
 }

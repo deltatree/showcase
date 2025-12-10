@@ -6,7 +6,13 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-// lifetimeSystem ages particles and removes expired ones.
+// LifetimeSystem ages particles and removes expired ones from the world.
+// It increments each entity's Age by delta time each frame and marks
+// entities as Expired when Age >= TTL. Expired entities are immediately
+// removed from the EntityManager.
+//
+// This system enables particle effects with finite durations, preventing
+// unbounded entity accumulation and enabling effects like fading trails.
 type lifetimeSystem struct{}
 
 // NewLifetimeSystem creates a new lifetime system.

@@ -8,10 +8,15 @@ import (
 	"github.com/deltatree/showcase/internal/config"
 )
 
-// chaosPreset creates chaotic random particle movement.
+// ChaosPreset creates chaotic random particle movement across the screen.
+// Particles spawn at random positions with random velocities and colors,
+// creating a vibrant, unpredictable visual effect. High particle count
+// and fast movement make this preset visually intense.
+//
+// Keyboard: Press 5 to activate this preset.
 type chaosPreset struct{}
 
-// NewChaosPreset creates a new chaos preset.
+// NewChaosPreset creates a new chaos preset instance.
 func NewChaosPreset() Preset {
 	return &chaosPreset{}
 }

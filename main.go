@@ -1,3 +1,18 @@
+// Particle Symphony - Native Desktop Application
+//
+// This is the main entry point for the native desktop version of Particle Symphony.
+// It uses raylib-go for rendering and provides interactive particle effects
+// driven by the andygeiss/ecs Entity-Component-System framework.
+//
+// Controls:
+//   - Mouse: Move to guide particles
+//   - Left Click: Attract particles
+//   - Right Click: Repel particles
+//   - Double-Click: Lock attract/repel mode
+//   - 1-5: Switch between presets
+//   - F3: Toggle debug overlay
+//
+// Run: go run main.go
 package main
 
 import (

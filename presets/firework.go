@@ -9,10 +9,14 @@ import (
 	"github.com/deltatree/showcase/internal/config"
 )
 
-// fireworkPreset creates firework-like explosions.
+// FireworkPreset creates colorful firework explosions with gravity.
+// Multiple explosion bursts spawn with randomly colored particles that
+// explode outward and fall under gravity, simulating real fireworks.
+//
+// Keyboard: Press 2 to activate this preset.
 type fireworkPreset struct{}
 
-// NewFireworkPreset creates a new firework preset.
+// NewFireworkPreset creates a new firework preset instance.
 func NewFireworkPreset() Preset {
 	return &fireworkPreset{}
 }

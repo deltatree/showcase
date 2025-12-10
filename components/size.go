@@ -1,9 +1,21 @@
 package components
 
-// Size represents the visual size of an entity.
+// Size represents the visual size of a particle entity.
+// It supports animated size transitions from StartSize to EndSize
+// over the particle's lifetime, enabling effects like fading sparks.
+//
+// Size interpolation is performed by ColorSystem based on the
+// particle's age relative to its lifetime (calculated as t = Age/TTL).
+//
+// Example creating a particle that shrinks:
+//
+//	size := components.NewSize().WithRadius(5.0).WithEndSize(0.5)
 type Size struct {
+	// Radius is the current visual radius in pixels.
 	Radius    float32
+	// StartSize is the initial radius when the particle spawns.
 	StartSize float32
+	// EndSize is the target radius when the particle expires.
 	EndSize   float32
 }
 

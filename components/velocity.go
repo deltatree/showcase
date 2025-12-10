@@ -3,8 +3,15 @@ package components
 import "math"
 
 // Velocity represents the movement speed and direction of an entity.
+// It is measured in pixels per second and applied by the physics system.
+//
+// The X component represents horizontal movement (positive = right),
+// and Y represents vertical movement (positive = down).
 type Velocity struct {
-	X, Y float32
+	// X is the horizontal velocity in pixels per second.
+	X float32
+	// Y is the vertical velocity in pixels per second.
+	Y float32
 }
 
 // Mask returns the component mask for Velocity.

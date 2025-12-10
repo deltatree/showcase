@@ -1,8 +1,20 @@
 package components
 
 // Acceleration represents the acceleration vector of an entity.
+// Acceleration is applied to velocity each frame by the PhysicsSystem,
+// enabling smooth force-based movement.
+//
+// The GravitySystem accumulates forces into acceleration (reset each frame),
+// then PhysicsSystem integrates: velocity += acceleration * dt.
+//
+// Example applying downward gravity:
+//
+//	accel := components.NewAcceleration().WithY(9.8)
 type Acceleration struct {
-	X, Y float32
+	// X is the horizontal acceleration in pixels per second squared.
+	X float32
+	// Y is the vertical acceleration in pixels per second squared.
+	Y float32
 }
 
 // Mask returns the component mask for Acceleration.
