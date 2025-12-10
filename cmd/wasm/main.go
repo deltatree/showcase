@@ -164,7 +164,7 @@ var (
 func NewAudioEngine() *AudioEngine {
 	ae := &AudioEngine{
 		muted:      false,
-		volume:     0.05, // Very quiet - barely audible ambient
+		volume:     0.12, // Audible but gentle ambient
 		scaleIndex: 0,
 	}
 	// Create Web Audio context
@@ -262,7 +262,7 @@ func (ae *AudioEngine) PlayChime(freq float64, volume float64) {
 	osc.Call("stop", now+duration+0.1)
 }
 
-// PlayInteraction - very subtle ambient tones based on interaction
+// PlayInteraction - subtle ambient tones based on interaction
 func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, particleCount int) {
 	if ae.muted || !ae.IsReady() {
 		return
@@ -275,21 +275,21 @@ func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, partic
 	ae.lastNote = noteIdx
 	baseFreq := scale[noteIdx]
 
-	// Very quiet - background ambience only
-	vol := 0.08 + intensity*0.04
-	if vol > 0.12 {
-		vol = 0.12
+	// Audible but gentle volume
+	vol := 0.15 + intensity*0.1
+	if vol > 0.25 {
+		vol = 0.25
 	}
 
-	// Very long, sustained pad sounds for ambient wash
-	duration := 3.0 + rand.Float64()*2.0
+	// Long, sustained pad sounds for ambient wash
+	duration := 2.0 + rand.Float64()*1.5
 
 	if isAttract {
 		// Warm, low pad for attract
-		ae.PlayPad(baseFreq*0.5, duration, vol) // Lower octave
+		ae.PlayPad(baseFreq, duration, vol)
 	} else {
 		// Slightly different tone for repel
-		ae.PlayPad(baseFreq*0.75, duration, vol*0.7)
+		ae.PlayPad(baseFreq*1.25, duration, vol*0.8)
 	}
 }
 
@@ -308,7 +308,7 @@ func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
 	ae.scaleIndex = presetIndex % len(calmScales)
 }
 
-// UpdateInteraction - plays very rare ambient sounds during interaction
+// UpdateInteraction - plays ambient sounds during interaction
 func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, intensity float64, particleCount int, dt float32) {
 	if ae.muted {
 		return
@@ -322,8 +322,8 @@ func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, int
 	ae.interactTimer -= dt
 	if ae.interactTimer <= 0 {
 		ae.PlayInteraction(isAttract, intensity, particleCount)
-		// Very long intervals - ambient sounds every 2-4 seconds
-		ae.interactTimer = 2.0 + rand.Float32()*2.0
+		// Play ambient sounds every 1-2 seconds
+		ae.interactTimer = 1.0 + rand.Float32()*1.0
 	}
 }
 
