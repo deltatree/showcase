@@ -34,3 +34,11 @@ func Example() {
 	// 4: Fountain
 	// 5: Chaos
 }
+
+// ExampleGetPalette demonstrates getting a preset's color palette.
+func ExampleGetPalette() {
+	preset := presets.GetPresetByName("Galaxy")
+	palette := presets.GetPalette(preset)
+	fmt.Printf("Palette: %s, Glow: %.1f\n", palette.Name, palette.GlowIntensity)
+	// Output: Palette: Galaxy, Glow: 0.6
+}

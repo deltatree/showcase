@@ -7,6 +7,7 @@ import (
 	"github.com/andygeiss/ecs"
 	"github.com/deltatree/showcase/components"
 	"github.com/deltatree/showcase/internal/config"
+	"github.com/deltatree/showcase/premium"
 )
 
 // FireworkPreset creates colorful firework explosions with gravity.
@@ -14,11 +15,15 @@ import (
 // explode outward and fall under gravity, simulating real fireworks.
 //
 // Keyboard: Press 2 to activate this preset.
-type fireworkPreset struct{}
+type fireworkPreset struct {
+	palette premium.ColorPalette
+}
 
 // NewFireworkPreset creates a new firework preset instance.
 func NewFireworkPreset() Preset {
-	return &fireworkPreset{}
+	return &fireworkPreset{
+		palette: premium.FireworkPalette,
+	}
 }
 
 func (p *fireworkPreset) Name() string { return "Firework" }
@@ -27,23 +32,30 @@ func (p *fireworkPreset) Description() string {
 	return "Colorful firework explosions with gravity"
 }
 
+// Palette returns the premium color palette for this preset.
+func (p *fireworkPreset) Palette() premium.ColorPalette {
+	return p.palette
+}
+
 func (p *fireworkPreset) Apply(em ecs.EntityManager, cfg *config.Config) {
 	ClearParticles(em)
 
 	width := float32(cfg.Window.Width)
 	height := float32(cfg.Window.Height)
+	pal := p.palette
 
 	numExplosions := 5
 	for e := 0; e < numExplosions; e++ {
 		explosionX := rand.Float32() * width
 		explosionY := height*0.2 + rand.Float32()*height*0.4
 
+		// Premium palette colors with variation
 		colors := []struct{ r, g, b uint8 }{
-			{255, 50, 50},
-			{255, 200, 50},
-			{50, 255, 50},
-			{50, 150, 255},
-			{255, 50, 255},
+			{pal.StartR, pal.StartG, pal.StartB},          // Gold
+			{pal.AltStartR, pal.AltStartG, pal.AltStartB}, // Red
+			{50, 255, 100},  // Green sparkle
+			{100, 180, 255}, // Blue sparkle
+			{255, 255, 255}, // White sparkle
 		}
 		c := colors[rand.Intn(len(colors))]
 
@@ -69,5 +81,7 @@ func (p *fireworkPreset) Apply(em ecs.EntityManager, cfg *config.Config) {
 
 // EmitterConfig returns emitter settings for this preset.
 func (p *fireworkPreset) EmitterConfig() (sr, sg, sb, sa, er, eg, eb, ea uint8, pattern string, rate int) {
-	return 255, 200, 50, 255, 255, 100, 50, 0, "edges", 20
+	pal := p.palette
+	return pal.StartR, pal.StartG, pal.StartB, pal.StartA,
+		pal.EndR, pal.EndG, pal.EndB, pal.EndA, "edges", 20
 }

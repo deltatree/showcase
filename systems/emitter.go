@@ -7,6 +7,7 @@ import (
 
 	"github.com/andygeiss/ecs"
 	"github.com/deltatree/showcase/components"
+	"github.com/deltatree/showcase/premium"
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
@@ -26,6 +27,7 @@ type emitterSystem struct {
 	height       float32
 	rng          *rand.Rand
 	idCounter    int64
+	quality      premium.QualitySettings
 	// Configurable spawn parameters set by presets
 	StartColorR, StartColorG, StartColorB, StartColorA uint8
 	EndColorR, EndColorG, EndColorB, EndColorA         uint8
@@ -48,6 +50,7 @@ func NewEmitterSystem(spawnRate, maxParticles int, width, height float32) *emitt
 		width:        width,
 		height:       height,
 		rng:          rand.New(rand.NewSource(time.Now().UnixNano())),
+		quality:      premium.GetQualitySettings(premium.QualityMedium),
 		StartColorR:  255, StartColorG: 150, StartColorB: 50, StartColorA: 255,
 		EndColorR: 255, EndColorG: 50, EndColorB: 50, EndColorA: 0,
 		MinSize:      2.0,
@@ -69,12 +72,18 @@ func (s *emitterSystem) Process(em ecs.EntityManager) (state int) {
 	particles := em.FilterByMask(components.MaskParticle)
 	currentCount := len(particles)
 
+	// Use quality-based max particles
+	maxAllowed := s.quality.MaxParticles
+	if s.maxParticles < maxAllowed {
+		maxAllowed = s.maxParticles
+	}
+
 	if s.spawnRate <= 0 {
 		return ecs.StateEngineContinue
 	}
 	spawnInterval := 1.0 / float32(s.spawnRate)
 
-	for s.spawnTimer >= spawnInterval && currentCount < s.maxParticles {
+	for s.spawnTimer >= spawnInterval && currentCount < maxAllowed {
 		s.spawnTimer -= spawnInterval
 		s.spawnParticle(em)
 		currentCount++
@@ -149,4 +158,14 @@ func (s *emitterSystem) SetSpawnPattern(pattern string) {
 // SetSpawnRate sets the spawn rate.
 func (s *emitterSystem) SetSpawnRate(rate int) {
 	s.spawnRate = rate
+}
+
+// SetQuality sets the quality level for particle limits.
+func (s *emitterSystem) SetQuality(level premium.QualityLevel) {
+	s.quality = premium.GetQualitySettings(level)
+}
+
+// GetQuality returns the current quality settings.
+func (s *emitterSystem) GetQuality() premium.QualitySettings {
+	return s.quality
 }

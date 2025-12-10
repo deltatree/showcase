@@ -33,6 +33,7 @@ import (
 	"github.com/andygeiss/ecs"
 	"github.com/deltatree/showcase/components"
 	"github.com/deltatree/showcase/internal/config"
+	"github.com/deltatree/showcase/premium"
 )
 
 // Preset defines the interface for particle presets.
@@ -40,6 +41,21 @@ type Preset interface {
 	Name() string
 	Description() string
 	Apply(em ecs.EntityManager, cfg *config.Config)
+}
+
+// PremiumPreset extends Preset with premium color palette support.
+type PremiumPreset interface {
+	Preset
+	Palette() premium.ColorPalette
+}
+
+// GetPalette returns the color palette for a preset.
+// Falls back to Galaxy palette if not a PremiumPreset.
+func GetPalette(p Preset) premium.ColorPalette {
+	if pp, ok := p.(PremiumPreset); ok {
+		return pp.Palette()
+	}
+	return premium.GetPalette(p.Name())
 }
 
 // Registry holds all available presets.

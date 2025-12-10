@@ -5,6 +5,7 @@ import (
 
 	"github.com/andygeiss/ecs"
 	"github.com/deltatree/showcase/components"
+	"github.com/deltatree/showcase/premium"
 )
 
 // TestColorSystem tests color interpolation based on lifetime.
@@ -677,4 +678,150 @@ func TestInputSystem_Teardown(t *testing.T) {
 	sys := NewInputSystem(nil)
 	// Teardown should not panic
 	sys.Teardown()
+}
+
+// --- Premium Integration Tests ---
+
+// TestRenderSystem_PremiumFeatures tests premium feature integration.
+func TestRenderSystem_PremiumFeatures(t *testing.T) {
+	sys := NewRenderSystem(1280, 720, "Test")
+
+	// Test quality setting
+	sys.SetQuality(premium.QualityHigh)
+	if sys.GetQuality().Level != premium.QualityHigh {
+		t.Error("SetQuality did not set quality level")
+	}
+
+	// Test palette setting
+	sys.SetPalette(premium.FireworkPalette)
+	if sys.palette.Name != "Firework" {
+		t.Error("SetPalette did not set palette")
+	}
+
+	// Test effects
+	sys.ApplyShake(5.0, 0.5)
+	if !sys.effects.IsActive() {
+		t.Error("ApplyShake should activate effects")
+	}
+
+	sys.ApplyPulse(1.05, 0.3)
+	// Effects should still be active
+	if !sys.effects.IsActive() {
+		t.Error("ApplyPulse should activate effects")
+	}
+}
+
+// TestEmitterSystem_QualityIntegration tests quality-based particle limits.
+func TestEmitterSystem_QualityIntegration(t *testing.T) {
+	sys := NewEmitterSystem(100, 10000, 1280, 720)
+
+	// Default should be Medium
+	if sys.GetQuality().Level != premium.QualityMedium {
+		t.Error("Default quality should be Medium")
+	}
+
+	// Set to Low
+	sys.SetQuality(premium.QualityLow)
+	if sys.GetQuality().MaxParticles != 3000 {
+		t.Errorf("Low quality MaxParticles = %d, want 3000", sys.GetQuality().MaxParticles)
+	}
+
+	// Set to High
+	sys.SetQuality(premium.QualityHigh)
+	if sys.GetQuality().MaxParticles != 15000 {
+		t.Errorf("High quality MaxParticles = %d, want 15000", sys.GetQuality().MaxParticles)
+	}
+}
+
+// TestNewMotionBlurRenderer tests motion blur renderer creation.
+func TestNewMotionBlurRenderer(t *testing.T) {
+	r := NewMotionBlurRenderer(true, 4)
+	if r == nil {
+		t.Error("NewMotionBlurRenderer returned nil")
+	}
+	if !r.enabled {
+		t.Error("enabled should be true")
+	}
+	if r.samples != 4 {
+		t.Errorf("samples = %d, want 4", r.samples)
+	}
+}
+
+// TestMotionBlurRenderer_SetEnabled tests enable/disable.
+func TestMotionBlurRenderer_SetEnabled(t *testing.T) {
+	r := NewMotionBlurRenderer(true, 4)
+	r.SetEnabled(false)
+	if r.enabled {
+		t.Error("SetEnabled(false) did not disable")
+	}
+	r.SetEnabled(true)
+	if !r.enabled {
+		t.Error("SetEnabled(true) did not enable")
+	}
+}
+
+// TestMotionBlurRenderer_ApplyQuality tests quality application.
+func TestMotionBlurRenderer_ApplyQuality(t *testing.T) {
+	r := NewMotionBlurRenderer(false, 0)
+
+	high := premium.GetQualitySettings(premium.QualityHigh)
+	r.ApplyQuality(high)
+
+	if !r.enabled {
+		t.Error("High quality should enable motion blur")
+	}
+	if r.samples != high.BlurSamples {
+		t.Errorf("samples = %d, want %d", r.samples, high.BlurSamples)
+	}
+}
+
+// TestNewGlowRenderer tests glow renderer creation.
+func TestNewGlowRenderer(t *testing.T) {
+	r := NewGlowRenderer(true, 2)
+	if r == nil {
+		t.Error("NewGlowRenderer returned nil")
+	}
+	if !r.enabled {
+		t.Error("enabled should be true")
+	}
+	if r.passes != 2 {
+		t.Errorf("passes = %d, want 2", r.passes)
+	}
+}
+
+// TestGlowRenderer_SetPalette tests palette setting.
+func TestGlowRenderer_SetPalette(t *testing.T) {
+	r := NewGlowRenderer(true, 2)
+	r.SetPalette(premium.ChaosPalette)
+
+	if r.palette.Name != "Chaos" {
+		t.Errorf("palette.Name = %s, want Chaos", r.palette.Name)
+	}
+}
+
+// TestGlowRenderer_ApplyQuality tests quality application.
+func TestGlowRenderer_ApplyQuality(t *testing.T) {
+	r := NewGlowRenderer(true, 5)
+
+	low := premium.GetQualitySettings(premium.QualityLow)
+	r.ApplyQuality(low)
+
+	if r.enabled {
+		t.Error("Low quality should disable glow")
+	}
+	if r.passes != low.GlowPasses {
+		t.Errorf("passes = %d, want %d", r.passes, low.GlowPasses)
+	}
+}
+
+// TestGlowRenderer_IsEnabled tests IsEnabled method.
+func TestGlowRenderer_IsEnabled(t *testing.T) {
+	r := NewGlowRenderer(true, 2)
+	if !r.IsEnabled() {
+		t.Error("IsEnabled should return true")
+	}
+	r.SetEnabled(false)
+	if r.IsEnabled() {
+		t.Error("IsEnabled should return false after SetEnabled(false)")
+	}
 }
