@@ -60,6 +60,9 @@ type Preset struct {
 	MinVel, MaxVel         float32
 	SpawnPattern           string
 	SpawnRate              int
+	// Premium color palette
+	GlowR, GlowG, GlowB uint8
+	GlowIntensity       float32
 }
 
 var presets = []Preset{
@@ -68,31 +71,71 @@ var presets = []Preset{
 		EndR: 255, EndG: 100, EndB: 200,
 		MinSize: 1.5, MaxSize: 4.0, MinTTL: 4.0, MaxTTL: 7.0,
 		MinVel: -30, MaxVel: 30, SpawnPattern: "center", SpawnRate: 150,
+		GlowR: 150, GlowG: 100, GlowB: 255, GlowIntensity: 0.8,
 	},
 	{
 		Name: "Firework", StartR: 255, StartG: 200, StartB: 50,
 		EndR: 255, EndG: 50, EndB: 0,
 		MinSize: 2.0, MaxSize: 5.0, MinTTL: 1.5, MaxTTL: 3.0,
 		MinVel: -150, MaxVel: 150, SpawnPattern: "center", SpawnRate: 200,
+		GlowR: 255, GlowG: 180, GlowB: 50, GlowIntensity: 1.0,
 	},
 	{
 		Name: "Swarm", StartR: 50, StartG: 255, StartB: 100,
 		EndR: 0, EndG: 150, EndB: 50,
 		MinSize: 1.0, MaxSize: 3.0, MinTTL: 5.0, MaxTTL: 8.0,
 		MinVel: -20, MaxVel: 20, SpawnPattern: "random", SpawnRate: 100,
+		GlowR: 100, GlowG: 255, GlowB: 150, GlowIntensity: 0.5,
 	},
 	{
 		Name: "Fountain", StartR: 100, StartG: 200, StartB: 255,
 		EndR: 50, EndG: 100, EndB: 200,
 		MinSize: 2.0, MaxSize: 4.0, MinTTL: 2.0, MaxTTL: 4.0,
 		MinVel: -80, MaxVel: 80, SpawnPattern: "bottom", SpawnRate: 180,
+		GlowR: 100, GlowG: 180, GlowB: 255, GlowIntensity: 0.7,
 	},
 	{
 		Name: "Chaos", StartR: 255, StartG: 50, StartB: 50,
 		EndR: 50, EndG: 50, EndB: 255,
 		MinSize: 1.0, MaxSize: 6.0, MinTTL: 2.0, MaxTTL: 5.0,
 		MinVel: -100, MaxVel: 100, SpawnPattern: "edges", SpawnRate: 250,
+		GlowR: 255, GlowG: 100, GlowB: 100, GlowIntensity: 0.9,
 	},
+}
+
+// QualityLevel for performance settings
+type QualityLevel int
+
+const (
+	QualityLow QualityLevel = iota
+	QualityMedium
+	QualityHigh
+)
+
+func (q QualityLevel) String() string {
+	switch q {
+	case QualityLow:
+		return "Low"
+	case QualityMedium:
+		return "Medium"
+	case QualityHigh:
+		return "High"
+	}
+	return "Unknown"
+}
+
+// QualitySettings defines performance parameters
+type QualitySettings struct {
+	MaxParticles int
+	GlowEnabled  bool
+	GlowPasses   int
+	SpawnMult    float32
+}
+
+var qualityPresets = map[QualityLevel]QualitySettings{
+	QualityLow:    {MaxParticles: 3000, GlowEnabled: false, GlowPasses: 0, SpawnMult: 0.5},
+	QualityMedium: {MaxParticles: 7000, GlowEnabled: true, GlowPasses: 1, SpawnMult: 1.0},
+	QualityHigh:   {MaxParticles: 12000, GlowEnabled: true, GlowPasses: 2, SpawnMult: 1.5},
 }
 
 // AudioEngine handles Web Audio API for sound effects
@@ -221,19 +264,53 @@ type Game struct {
 	audio          *AudioEngine
 	lastAttract    bool
 	lastRepel      bool
+	// Premium features
+	quality         QualityLevel
+	qualitySettings QualitySettings
+	// Touch/Mobile support
+	touchIDs      []ebiten.TouchID
+	lastTouchTime time.Time
+	isMobile      bool
 }
 
 func NewGame() *Game {
+	// Detect mobile via user agent
+	isMobile := false
+	navigator := js.Global().Get("navigator")
+	if !navigator.IsUndefined() {
+		ua := navigator.Get("userAgent").String()
+		isMobile = contains(ua, "Mobile") || contains(ua, "Android") || contains(ua, "iPhone") || contains(ua, "iPad")
+	}
+
+	// Default quality based on device
+	defaultQuality := QualityMedium
+	if isMobile {
+		defaultQuality = QualityLow
+	}
+
 	g := &Game{
-		particles:     make([]Particle, maxParticles),
-		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
-		currentPreset: 0,
-		showDebug:     true,
-		lockedMode:    0,
-		audio:         NewAudioEngine(),
+		particles:       make([]Particle, maxParticles),
+		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
+		currentPreset:   0,
+		showDebug:       !isMobile, // Hide debug on mobile by default
+		lockedMode:      0,
+		audio:           NewAudioEngine(),
+		quality:         defaultQuality,
+		qualitySettings: qualityPresets[defaultQuality],
+		isMobile:        isMobile,
 	}
 	g.preset = presets[0]
 	return g
+}
+
+// Simple string contains helper
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func (g *Game) spawnParticle() {
@@ -294,15 +371,47 @@ func (g *Game) spawnParticle() {
 func (g *Game) Update() error {
 	dt := float32(1.0 / 60.0)
 
-	g.mouseX, g.mouseY = ebiten.CursorPosition()
+	// Handle touch input for mobile
+	g.touchIDs = inpututil.AppendJustPressedTouchIDs(g.touchIDs[:0])
+	touchActive := len(ebiten.AppendTouchIDs(nil)) > 0
+
+	// Get input position (touch or mouse)
+	if touchActive {
+		touches := ebiten.AppendTouchIDs(nil)
+		if len(touches) > 0 {
+			g.mouseX, g.mouseY = ebiten.TouchPosition(touches[0])
+		}
+	} else {
+		g.mouseX, g.mouseY = ebiten.CursorPosition()
+	}
 
 	// Resume audio context on first interaction (browser requirement)
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
-		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) ||
+		len(g.touchIDs) > 0 {
 		g.audio.Resume()
 	}
 
 	now := time.Now()
+
+	// Touch: single tap = attract, double tap = lock, two-finger = repel
+	if len(g.touchIDs) > 0 {
+		touches := ebiten.AppendTouchIDs(nil)
+		if len(touches) >= 2 {
+			// Two fingers = repel
+			g.attractorMass = -5000
+		} else if now.Sub(g.lastTouchTime) < 300*time.Millisecond {
+			// Double tap = toggle lock
+			if g.lockedMode == 1 {
+				g.lockedMode = 0
+			} else {
+				g.lockedMode = 1
+			}
+		}
+		g.lastTouchTime = now
+	}
+
+	// Mouse input
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		if now.Sub(g.lastClickTime) < 300*time.Millisecond {
 			if g.lockedMode == 1 {
@@ -324,10 +433,18 @@ func (g *Game) Update() error {
 		g.lastClickTime = now
 	}
 
+	// Determine attractor mass
 	if g.lockedMode == 1 {
 		g.attractorMass = 8000
 	} else if g.lockedMode == -1 {
 		g.attractorMass = -8000
+	} else if touchActive {
+		touches := ebiten.AppendTouchIDs(nil)
+		if len(touches) >= 2 {
+			g.attractorMass = -5000 // Two fingers = repel
+		} else if len(touches) == 1 {
+			g.attractorMass = 5000 // One finger = attract
+		}
 	} else if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
 		g.attractorMass = 5000
 	} else if ebiten.IsMouseButtonPressed(ebiten.MouseButtonRight) {
@@ -364,11 +481,21 @@ func (g *Game) Update() error {
 		g.audio.ToggleMute()
 	}
 
+	// Toggle quality with Q key
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) {
+		g.cycleQuality()
+	}
+
+	// Spawn with quality-adjusted rate
+	effectiveRate := float32(g.preset.SpawnRate) * g.qualitySettings.SpawnMult
 	g.spawnTimer += dt
-	spawnInterval := 1.0 / float32(g.preset.SpawnRate)
+	spawnInterval := 1.0 / effectiveRate
 	for g.spawnTimer >= spawnInterval {
 		g.spawnTimer -= spawnInterval
-		g.spawnParticle()
+		// Only spawn if under quality limit
+		if g.activeCount < g.qualitySettings.MaxParticles {
+			g.spawnParticle()
+		}
 	}
 
 	g.activeCount = 0
@@ -456,43 +583,166 @@ func (g *Game) switchPreset(index int) {
 	}
 }
 
+func (g *Game) cycleQuality() {
+	switch g.quality {
+	case QualityLow:
+		g.quality = QualityMedium
+	case QualityMedium:
+		g.quality = QualityHigh
+	case QualityHigh:
+		g.quality = QualityLow
+	}
+	g.qualitySettings = qualityPresets[g.quality]
+}
+
+func (g *Game) nextPreset() {
+	g.switchPreset((g.currentPreset + 1) % len(presets))
+}
+
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{10, 10, 20, 255})
+
+	preset := g.preset
 
 	for i := range g.particles {
 		p := &g.particles[i]
 		if !p.Active {
 			continue
 		}
+
+		// Glow effect (if enabled and quality allows)
+		if g.qualitySettings.GlowEnabled && preset.GlowIntensity > 0 {
+			glowAlpha := uint8(float32(p.A) * preset.GlowIntensity * 0.3)
+			glowCol := color.RGBA{preset.GlowR, preset.GlowG, preset.GlowB, glowAlpha}
+
+			// Draw glow passes
+			for pass := 0; pass < g.qualitySettings.GlowPasses; pass++ {
+				glowSize := p.Radius * (2.0 + float32(pass)*1.2)
+				drawCircleFast(screen, p.X, p.Y, glowSize, glowCol)
+			}
+		}
+
+		// Main particle
 		col := color.RGBA{p.R, p.G, p.B, p.A}
-		drawCircle(screen, p.X, p.Y, p.Radius, col)
+		drawCircleFast(screen, p.X, p.Y, p.Radius, col)
 	}
 
+	// Debug overlay
 	if g.showDebug {
-		soundStatus := "🔊 ON"
+		soundStatus := "🔊"
 		if g.audio.IsMuted() {
-			soundStatus = "🔇 MUTED"
+			soundStatus = "🔇"
 		}
-		info := fmt.Sprintf("FPS: %.0f\nParticles: %d\nPreset: %s\nSound: %s\nMouse: (%d, %d)",
-			ebiten.ActualFPS(), g.activeCount, g.preset.Name, soundStatus, g.mouseX, g.mouseY)
+		info := fmt.Sprintf("FPS: %.0f | Particles: %d/%d | %s | Quality: %s %s",
+			ebiten.ActualFPS(), g.activeCount, g.qualitySettings.MaxParticles,
+			g.preset.Name, g.quality.String(), soundStatus)
 		if g.lockedMode == 1 {
-			info += "\n[ATTRACT LOCKED]"
+			info += " [LOCKED]"
 		} else if g.lockedMode == -1 {
-			info += "\n[REPEL LOCKED]"
+			info += " [REPEL]"
 		}
 		ebitenutil.DebugPrint(screen, info)
-		ebitenutil.DebugPrintAt(screen, "F3: Debug | M: Mute | LMB: Attract | RMB: Repel | 1-5: Presets", 10, screenHeight-20)
+
+		// Controls help
+		helpText := "Q: Quality | M: Mute | 1-5: Presets"
+		if g.isMobile {
+			helpText = "Tap: Attract | 2-Finger: Repel | Double-Tap: Lock"
+		}
+		ebitenutil.DebugPrintAt(screen, helpText, 10, screenHeight-20)
+	}
+
+	// Mobile UI: Touch buttons overlay
+	if g.isMobile {
+		g.drawMobileUI(screen)
 	}
 }
 
-func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
+func (g *Game) drawMobileUI(screen *ebiten.Image) {
+	// Preset buttons at bottom
+	btnWidth := 50
+	btnHeight := 40
+	startX := screenWidth/2 - (len(presets)*btnWidth)/2
+	y := screenHeight - btnHeight - 5
+
+	for i, p := range presets {
+		x := startX + i*btnWidth
+		btnCol := color.RGBA{60, 60, 80, 200}
+		if i == g.currentPreset {
+			btnCol = color.RGBA{100, 100, 200, 255}
+		}
+
+		// Draw button background
+		for dy := 0; dy < btnHeight; dy++ {
+			for dx := 0; dx < btnWidth-2; dx++ {
+				screen.Set(x+dx, y+dy, btnCol)
+			}
+		}
+
+		// Check if button is tapped
+		for _, tid := range g.touchIDs {
+			tx, ty := ebiten.TouchPosition(tid)
+			if tx >= x && tx < x+btnWidth && ty >= y && ty < y+btnHeight {
+				g.switchPreset(i)
+			}
+		}
+
+		// Button label (first letter)
+		label := string(p.Name[0])
+		ebitenutil.DebugPrintAt(screen, label, x+btnWidth/2-4, y+btnHeight/2-8)
+	}
+
+	// Quality button top-right
+	qx, qy := screenWidth-60, 10
+	qCol := color.RGBA{60, 60, 80, 200}
+	for dy := 0; dy < 30; dy++ {
+		for dx := 0; dx < 50; dx++ {
+			screen.Set(qx+dx, qy+dy, qCol)
+		}
+	}
+	ebitenutil.DebugPrintAt(screen, g.quality.String()[:1], qx+20, qy+8)
+
+	// Check quality tap
+	for _, tid := range g.touchIDs {
+		tx, ty := ebiten.TouchPosition(tid)
+		if tx >= qx && tx < qx+50 && ty >= qy && ty < qy+30 {
+			g.cycleQuality()
+		}
+	}
+
+	// Mute button
+	mx, my := screenWidth-120, 10
+	mCol := color.RGBA{60, 60, 80, 200}
+	for dy := 0; dy < 30; dy++ {
+		for dx := 0; dx < 50; dx++ {
+			screen.Set(mx+dx, my+dy, mCol)
+		}
+	}
+	mLabel := "🔊"
+	if g.audio.IsMuted() {
+		mLabel = "🔇"
+	}
+	ebitenutil.DebugPrintAt(screen, mLabel, mx+18, my+8)
+
+	// Check mute tap
+	for _, tid := range g.touchIDs {
+		tx, ty := ebiten.TouchPosition(tid)
+		if tx >= mx && tx < mx+50 && ty >= my && ty < my+30 {
+			g.audio.ToggleMute()
+		}
+	}
+}
+
+// Fast circle drawing using Ebitengine's optimized methods
+func drawCircleFast(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
 	r := int(radius)
 	if r < 1 {
 		r = 1
 	}
+	// Use squared distance check for filled circle
+	r2 := r * r
 	for y := -r; y <= r; y++ {
 		for x := -r; x <= r; x++ {
-			if x*x+y*y <= r*r {
+			if x*x+y*y <= r2 {
 				px, py := int(cx)+x, int(cy)+y
 				if px >= 0 && px < screenWidth && py >= 0 && py < screenHeight {
 					screen.Set(px, py, col)
@@ -500,6 +750,10 @@ func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
 			}
 		}
 	}
+}
+
+func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
+	drawCircleFast(screen, cx, cy, radius, col)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
