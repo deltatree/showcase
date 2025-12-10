@@ -1,0 +1,79 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build WASM
+        run: |
+          cd cmd/wasm
+          go mod tidy
+          GOOS=js GOARCH=wasm go build -o particle-symphony.wasm .
+
+      - name: Get wasm_exec.js
+        run: |
+          WASM_EXEC="$(go env GOROOT)/misc/wasm/wasm_exec.js"
+          if [ ! -f "$WASM_EXEC" ]; then
+            WASM_EXEC="$(go env GOROOT)/lib/wasm/wasm_exec.js"
+          fi
+          cp "$WASM_EXEC" cmd/wasm/
+
+      - name: Create Release Archive
+        run: |
+          mkdir -p release
+          cp cmd/wasm/particle-symphony.wasm release/
+          cp cmd/wasm/wasm_exec.js release/
+          cp web/index.html release/
+          cd release && zip -r ../particle-symphony-wasm.zip .
+
+      - name: Extract Version from Tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Particle Symphony ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Particle Symphony ${{ steps.version.outputs.VERSION }}
+            
+            ### 🎮 Play Online
+            Try it now at: https://deltatree.github.io/showcase/
+            
+            ### 📦 Downloads
+            - **particle-symphony-wasm.zip** - WebAssembly version (run locally with any HTTP server)
+            
+            ### 🎵 Features
+            - Interactive particle simulation with ECS architecture
+            - Multiple presets (Galaxy, Firework, Swarm, Fountain, Chaos)
+            - Interactive music that responds to your interactions
+            - Quality settings (Low/Medium/High)
+            - Adjustable particle count
+            - Touch support for mobile devices
+            
+            ### 🎹 Controls
+            - **Mouse/Touch**: Move to guide particles
+            - **Left Click / Tap**: Attract particles
+            - **Right Click / 2-Finger**: Repel particles
+            - **1-5**: Switch presets
+            - **Q**: Toggle quality
+            - **M**: Toggle sound
+          files: |
+            particle-symphony-wasm.zip
+          generate_release_notes: true

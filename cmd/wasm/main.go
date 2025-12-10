@@ -174,7 +174,7 @@ var (
 func NewAudioEngine() *AudioEngine {
 	ae := &AudioEngine{
 		muted:      false,
-		volume:     0.2,
+		volume:     0.3, // Increased volume
 		scaleIndex: 0,
 	}
 	// Create Web Audio context
@@ -184,6 +184,10 @@ func NewAudioEngine() *AudioEngine {
 	}
 	if !audioCtx.IsUndefined() {
 		ae.ctx = audioCtx.New()
+		// Log audio context state for debugging
+		js.Global().Get("console").Call("log", "AudioContext created, state:", ae.ctx.Get("state").String())
+	} else {
+		js.Global().Get("console").Call("warn", "Web Audio API not available")
 	}
 	return ae
 }
@@ -193,8 +197,12 @@ func (ae *AudioEngine) IsReady() bool {
 }
 
 func (ae *AudioEngine) Resume() {
-	if ae.IsReady() && ae.ctx.Get("state").String() == "suspended" {
-		ae.ctx.Call("resume")
+	if ae.IsReady() {
+		state := ae.ctx.Get("state").String()
+		if state == "suspended" {
+			ae.ctx.Call("resume")
+			js.Global().Get("console").Call("log", "AudioContext resumed")
+		}
 	}
 }
 
@@ -364,8 +372,8 @@ func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, int
 	ae.interactTimer -= dt
 	if ae.interactTimer <= 0 {
 		ae.PlayInteraction(isAttract, intensity, particleCount)
-		// Variable timing based on intensity
-		ae.interactTimer = 0.1 + (1.0-float32(intensity))*0.2 + rand.Float32()*0.1
+		// Variable timing based on intensity - faster sounds for more intense interaction
+		ae.interactTimer = 0.08 + (1.0-float32(intensity))*0.15 + rand.Float32()*0.05
 	}
 }
 
