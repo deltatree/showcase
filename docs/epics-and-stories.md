@@ -7,9 +7,9 @@ project_name: 'showcase'
 user_name: 'Deltatree'
 date: '2025-12-10'
 yolo_mode: true
-totalEpics: 6
-totalStories: 24
-estimatedSprints: 3
+totalEpics: 7
+totalStories: 28
+estimatedSprints: 4
 ---
 
 # Epics & User Stories - Particle Symphony
@@ -25,10 +25,10 @@ estimatedSprints: 3
 
 | Metrik | Wert |
 |--------|------|
-| **Epics** | 6 |
-| **User Stories** | 24 |
-| **Story Points (geschätzt)** | 89 |
-| **Sprints (geschätzt)** | 3 |
+| **Epics** | 7 |
+| **User Stories** | 28 |
+| **Story Points (geschätzt)** | 102 |
+| **Sprints (geschätzt)** | 4 |
 
 ### Epic-Übersicht
 
@@ -40,6 +40,7 @@ estimatedSprints: 3
 | E-004 | Visual Effects | 4 | 16 | 🟡 SHOULD |
 | E-005 | Preset-System | 4 | 13 | 🟡 SHOULD |
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD |
+| E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST |
 
 ---
 
@@ -908,4 +909,330 @@ Eine Story ist "Done" wenn:
 
 ---
 
-**🚀 YOLO MODE COMPLETE - 24 STORIES READY FOR IMPLEMENTATION!**
+**🚀 YOLO MODE COMPLETE - 28 STORIES READY FOR IMPLEMENTATION!**
+
+---
+
+# Epic E-007: Web Deployment (WASM)
+
+**Beschreibung:** Die Particle Symphony Anwendung wird als WebAssembly (WASM) kompiliert und automatisch auf GitHub Pages deployed. Jeder kann den Showcase direkt im Browser erleben – ohne Installation!
+
+**Business Value:** 
+- **Reichweite x100:** Jeder mit einem Browser kann den ECS-Showcase erleben
+- **Technische Demo:** Beweist, dass Go + ECS + Raylib auch im Web funktioniert
+- **Professioneller Auftritt:** Automatisches Deployment zeigt DevOps-Kompetenz
+- **Viral-Potenzial:** Einfach zu teilen, keine Hürden
+
+**Akzeptanzkriterien:**
+- WASM-Binary wird erfolgreich gebaut
+- GitHub Actions Pipeline deployed automatisch bei Push auf `main`
+- Landing Page ist ansprechend und responsive
+- Showcase läuft flüssig im Browser (Chrome, Firefox, Safari)
+
+---
+
+## Story E-007-S01: WASM Build Setup
+
+**Als** Entwickler  
+**möchte ich** die Anwendung als WebAssembly kompilieren können  
+**damit** sie im Browser ausführbar ist
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] WASM-Target (`GOOS=js GOARCH=wasm`) funktioniert
+- [ ] `wasm_exec.js` von Go-Installation kopiert
+- [ ] Raylib WASM-Kompatibilität validiert/angepasst
+- [ ] Build-Script erstellt: `build-wasm.sh`
+- [ ] Output: `particle-symphony.wasm` + `wasm_exec.js`
+
+**Technische Details:**
+```bash
+#!/bin/bash
+# build-wasm.sh
+cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
+GOOS=js GOARCH=wasm go build -o web/particle-symphony.wasm .
+```
+
+**Raylib WASM Hinweise:**
+- `raylib-go` unterstützt WASM via Emscripten
+- Alternative: Build mit `-tags=wasm` falls nötig
+- Window-Init muss WASM-kompatibel sein (kein SetTargetFPS in manchen Fällen)
+
+**Definition of Done:**
+- [ ] `./build-wasm.sh` erzeugt valides WASM
+- [ ] Keine Compile-Errors
+- [ ] WASM-Größe dokumentiert
+
+---
+
+## Story E-007-S02: Web-Host HTML/JS Wrapper
+
+**Als** Benutzer  
+**möchte ich** den Showcase auf einer Webseite starten  
+**damit** ich ihn ohne Installation erleben kann
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] `web/index.html` lädt WASM korrekt
+- [ ] Canvas-Element für Raylib-Rendering konfiguriert
+- [ ] Loading-Indicator während WASM lädt
+- [ ] Fehlerbehandlung wenn WASM nicht unterstützt
+- [ ] Responsive Design (funktioniert auf Desktop und Tablet)
+
+**Technische Details:**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Particle Symphony - ECS Showcase</title>
+    <style>
+        body { margin: 0; background: #0a0a0a; }
+        #canvas { display: block; margin: auto; }
+        .loading { color: white; text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <h2>🎵 Particle Symphony lädt...</h2>
+        <p>WebAssembly wird initialisiert</p>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("particle-symphony.wasm"), go.importObject)
+            .then((result) => {
+                document.getElementById('loading').style.display = 'none';
+                go.run(result.instance);
+            })
+            .catch((err) => {
+                document.getElementById('loading').innerHTML = 
+                    '<h2>❌ Fehler beim Laden</h2><p>' + err + '</p>';
+            });
+    </script>
+</body>
+</html>
+```
+
+**Definition of Done:**
+- [ ] Lokaler Test mit `python -m http.server` funktioniert
+- [ ] Canvas zeigt Partikel
+- [ ] Loading-State sichtbar
+
+---
+
+## Story E-007-S03: GitHub Actions CI/CD Pipeline
+
+**Als** Entwickler  
+**möchte ich** automatisches Deployment bei jedem Push  
+**damit** die GitHub Page immer aktuell ist
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] `.github/workflows/deploy.yml` erstellt
+- [ ] Pipeline baut WASM bei Push auf `main`
+- [ ] Pipeline deployed nach `gh-pages` Branch
+- [ ] GitHub Pages ist aktiviert für `gh-pages` Branch
+- [ ] Status-Badge in README
+
+**Technische Details:**
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Build WASM
+        run: |
+          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
+          GOOS=js GOARCH=wasm go build -o web/particle-symphony.wasm .
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'web'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+**Definition of Done:**
+- [ ] Push auf `main` triggered Workflow
+- [ ] Workflow ist grün
+- [ ] GitHub Page erreichbar unter `https://deltatree.github.io/showcase/`
+
+---
+
+## Story E-007-S04: Premium Landing Page Design
+
+**Als** Besucher  
+**möchte ich** eine ansprechende Landing Page  
+**damit** ich verstehe was mich erwartet und beeindruckt bin
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] Modernes, dunkles Design passend zur Partikel-Ästhetik
+- [ ] Hero-Section mit Titel und Kurzbeschreibung
+- [ ] Canvas nimmt Hauptbereich ein
+- [ ] Steuerungs-Hinweise unten (Tasten 1-5, Maus-Interaktion)
+- [ ] Footer mit Links zu GitHub-Repo und ECS-Framework
+- [ ] Responsive: Funktioniert auf Mobile (readonly) und Desktop
+
+**Design-Konzept:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  🎵 PARTICLE SYMPHONY                        [GitHub] [ECS]     │
+│  Ein interaktiver ECS-Showcase in Go + Raylib                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│                                                                 │
+│                     ┌─────────────────────┐                     │
+│                     │                     │                     │
+│                     │    WASM CANVAS      │                     │
+│                     │   (1280 x 720)      │                     │
+│                     │                     │                     │
+│                     └─────────────────────┘                     │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  🎮 Steuerung:                                                  │
+│  [1] Galaxy  [2] Firework  [3] Swarm  [4] Fountain  [5] Chaos   │
+│  [LMB] Anziehen  [RMB] Abstoßen  [F3] Debug                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Built with andygeiss/ecs • Source on GitHub • MIT License      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Technische Details:**
+- CSS-Only Animation für Header (subtle glow)
+- Keyboard-Shortcuts Overlay mit CSS
+- Font: Inter oder System-Font-Stack
+- Farbschema: #0a0a0a Background, #00ff88 Accent, #ffffff Text
+
+**Definition of Done:**
+- [ ] Design umgesetzt
+- [ ] Mobile-View getestet
+- [ ] Links funktionieren
+- [ ] Lighthouse Score > 90
+
+---
+
+# Aktualisierte Sprint-Planung
+
+## Sprint 4: Web Deployment (Woche 4 - NEU)
+
+| Story | Epic | Points | Priorität |
+|-------|------|--------|-----------|
+| E-007-S01 | Web Deployment | 3 | 🔴 |
+| E-007-S02 | Web Deployment | 3 | 🔴 |
+| E-007-S03 | Web Deployment | 4 | 🔴 |
+| E-007-S04 | Web Deployment | 3 | 🔴 |
+| **Total** | | **13** | |
+
+**Sprint Goal:** Showcase läuft live auf `https://deltatree.github.io/showcase/` mit automatischem Deployment.
+
+---
+
+# Aktualisierter Dependency Graph
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STORY DEPENDENCIES                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  [EXISTING EPICS E-001 bis E-006 - siehe oben]                  │
+│                                                                  │
+│  ═══════════════════════════════════════════════════════════    │
+│                                                                  │
+│  E-007: WEB DEPLOYMENT (kann parallel zu E-004/E-005 laufen)    │
+│                                                                  │
+│  E-001-S04 (Engine läuft) ──────────┐                           │
+│  E-002-S01 (Physik funktioniert) ───┤                           │
+│  E-003-S01 (Input funktioniert) ────┘                           │
+│           │                                                      │
+│           ▼                                                      │
+│  E-007-S01 (WASM Build Setup)                                   │
+│           │                                                      │
+│           ▼                                                      │
+│  E-007-S02 (HTML/JS Wrapper)                                    │
+│           │                                                      │
+│           ├──────────────────────┐                              │
+│           ▼                      ▼                              │
+│  E-007-S03 (CI/CD Pipeline)  E-007-S04 (Landing Page)           │
+│           │                      │                              │
+│           └──────────┬───────────┘                              │
+│                      ▼                                          │
+│              🌐 LIVE DEPLOYMENT                                  │
+│       https://deltatree.github.io/showcase/                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# E-007 Technical Notes
+
+## WASM Kompatibilität Checklist
+
+| Feature | Native | WASM | Anpassung nötig? |
+|---------|--------|------|------------------|
+| Raylib Rendering | ✅ | ✅ | Canvas-Element erforderlich |
+| Mouse Input | ✅ | ✅ | Automatisch via Raylib |
+| Keyboard Input | ✅ | ✅ | Automatisch via Raylib |
+| Window Resize | ✅ | ⚠️ | CSS-basiertes Scaling |
+| Audio | ✅ | ⚠️ | Möglicherweise deaktiviert |
+| File I/O | ✅ | ❌ | Config embedded kompilieren |
+| 60 FPS | ✅ | ✅ | RequestAnimationFrame |
+
+## Fallback-Strategie
+
+Falls `raylib-go` WASM-Probleme macht:
+1. **Option A:** Ebitengine als alternatives Rendering-Backend
+2. **Option B:** Nur statische Demo mit Screenshots/GIF
+3. **Option C:** Native-Binary Download-Links auf Landing Page
+
+## Performance-Ziele WASM
+
+| Metrik | Zielwert |
+|--------|----------|
+| WASM-Größe | < 10 MB |
+| Initial Load | < 3 Sekunden |
+| FPS im Browser | 60 FPS bei 5.000 Partikeln |
+| Memory Usage | < 100 MB |
+
+---
+
+**🚀 YOLO MODE COMPLETE - 28 STORIES READY FOR IMPLEMENTATION!**
