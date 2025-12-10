@@ -154,21 +154,21 @@ type AudioEngine struct {
 // Musical scales for variety
 var (
 	// Different scales for different moods
-	pentatonicMajor = []float64{261.63, 293.66, 329.63, 392.00, 440.00}           // C D E G A
-	pentatonicMinor = []float64{261.63, 311.13, 349.23, 392.00, 466.16}           // C Eb F G Bb
-	blues           = []float64{261.63, 311.13, 349.23, 369.99, 392.00, 466.16}   // C Eb F F# G Bb
-	japanese        = []float64{261.63, 277.18, 329.63, 392.00, 415.30}           // C Db E G Ab
-	arabic          = []float64{261.63, 277.18, 329.63, 349.23, 392.00, 415.30}   // C Db E F G Ab
-	wholeTone       = []float64{261.63, 293.66, 329.63, 369.99, 415.30, 466.16}   // C D E F# G# A#
-	
+	pentatonicMajor = []float64{261.63, 293.66, 329.63, 392.00, 440.00}         // C D E G A
+	pentatonicMinor = []float64{261.63, 311.13, 349.23, 392.00, 466.16}         // C Eb F G Bb
+	blues           = []float64{261.63, 311.13, 349.23, 369.99, 392.00, 466.16} // C Eb F F# G Bb
+	japanese        = []float64{261.63, 277.18, 329.63, 392.00, 415.30}         // C Db E G Ab
+	arabic          = []float64{261.63, 277.18, 329.63, 349.23, 392.00, 415.30} // C Db E F G Ab
+	wholeTone       = []float64{261.63, 293.66, 329.63, 369.99, 415.30, 466.16} // C D E F# G# A#
+
 	allScales = [][]float64{pentatonicMajor, pentatonicMinor, blues, japanese, arabic, wholeTone}
-	
+
 	// Chord types (intervals in semitones from root)
-	chordMajor    = []float64{1.0, 1.26, 1.5}    // Root, Major 3rd, Perfect 5th
-	chordMinor    = []float64{1.0, 1.19, 1.5}    // Root, Minor 3rd, Perfect 5th
-	chordDim      = []float64{1.0, 1.19, 1.414}  // Root, Minor 3rd, Tritone
-	chordSus4     = []float64{1.0, 1.335, 1.5}   // Root, Perfect 4th, Perfect 5th
-	chordPowerAdd = []float64{1.0, 1.5, 2.0}     // Root, 5th, Octave
+	chordMajor    = []float64{1.0, 1.26, 1.5}   // Root, Major 3rd, Perfect 5th
+	chordMinor    = []float64{1.0, 1.19, 1.5}   // Root, Minor 3rd, Perfect 5th
+	chordDim      = []float64{1.0, 1.19, 1.414} // Root, Minor 3rd, Tritone
+	chordSus4     = []float64{1.0, 1.335, 1.5}  // Root, Perfect 4th, Perfect 5th
+	chordPowerAdd = []float64{1.0, 1.5, 2.0}    // Root, 5th, Octave
 )
 
 func NewAudioEngine() *AudioEngine {
@@ -237,15 +237,15 @@ func (ae *AudioEngine) PlayArpeggio(baseFreq float64, intervals []float64, noteL
 	for i, interval := range intervals {
 		osc := ae.ctx.Call("createOscillator")
 		gain := ae.ctx.Call("createGain")
-		
+
 		osc.Get("frequency").Set("value", baseFreq*interval)
 		osc.Set("type", waveType)
-		
+
 		startTime := now + float64(i)*noteLen*0.8
 		gain.Get("gain").Call("setValueAtTime", 0.001, now)
 		gain.Get("gain").Call("setValueAtTime", volume*ae.volume, startTime)
 		gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, startTime+noteLen)
-		
+
 		osc.Call("connect", gain)
 		gain.Call("connect", ae.ctx.Get("destination"))
 		osc.Call("start", now)
@@ -258,15 +258,15 @@ func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, partic
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	
+
 	// Choose scale based on attract/repel and randomness
 	scale := allScales[ae.scaleIndex]
-	
+
 	// Base note from scale
 	noteIdx := (ae.lastNote + 1 + rand.Intn(3)) % len(scale)
 	ae.lastNote = noteIdx
 	baseFreq := scale[noteIdx]
-	
+
 	// Octave based on intensity
 	octave := 1.0
 	if intensity > 0.5 {
@@ -276,20 +276,20 @@ func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, partic
 		octave *= 0.5 // Lower octave for many particles
 	}
 	baseFreq *= octave
-	
+
 	// Volume based on intensity
 	vol := 0.1 + intensity*0.3
 	if vol > 0.4 {
 		vol = 0.4
 	}
-	
+
 	// Waveform variety
 	waveTypes := []string{"sine", "triangle", "square", "sawtooth"}
 	waveType := waveTypes[rand.Intn(len(waveTypes))]
-	
+
 	// Different musical responses
 	responseType := rand.Intn(5)
-	
+
 	switch responseType {
 	case 0:
 		// Single note with harmonics
@@ -317,7 +317,7 @@ func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, partic
 		// Suspended chord (ethereal)
 		ae.PlayChord(baseFreq, chordSus4, 0.3, vol, "triangle")
 	}
-	
+
 	// Occasionally change scale for variety
 	if rand.Intn(20) == 0 {
 		ae.scaleIndex = (ae.scaleIndex + 1) % len(allScales)
@@ -329,27 +329,27 @@ func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	
+
 	// Each preset gets a unique chord/sound
 	presetSounds := []struct {
-		freq   float64
-		chord  []float64
-		wave   string
+		freq  float64
+		chord []float64
+		wave  string
 	}{
-		{329.63, chordMajor, "triangle"},    // Fountain - bright, major
-		{261.63, chordMinor, "sawtooth"},    // Firework - explosive
-		{440.00, chordSus4, "sine"},         // Galaxy - ethereal
-		{349.23, chordPowerAdd, "square"},   // Chaos - aggressive
-		{392.00, chordDim, "triangle"},      // Swarm - mysterious
+		{329.63, chordMajor, "triangle"},  // Fountain - bright, major
+		{261.63, chordMinor, "sawtooth"},  // Firework - explosive
+		{440.00, chordSus4, "sine"},       // Galaxy - ethereal
+		{349.23, chordPowerAdd, "square"}, // Chaos - aggressive
+		{392.00, chordDim, "triangle"},    // Swarm - mysterious
 	}
-	
+
 	if presetIndex < len(presetSounds) {
 		ps := presetSounds[presetIndex]
 		ae.PlayChord(ps.freq, ps.chord, 0.3, 0.35, ps.wave)
 		// Add shimmer
 		ae.PlayTone(ps.freq*4, 0.2, 0.1, "sine")
 	}
-	
+
 	// Switch to a scale that matches the preset mood
 	ae.scaleIndex = presetIndex % len(allScales)
 }
@@ -360,7 +360,7 @@ func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, int
 		ae.interactTimer = 0
 		return
 	}
-	
+
 	ae.interactTimer -= dt
 	if ae.interactTimer <= 0 {
 		ae.PlayInteraction(isAttract, intensity, particleCount)
@@ -590,7 +590,7 @@ func (g *Game) Update() error {
 		intensity = 1.0
 	}
 	g.audio.UpdateInteraction(isInteracting, isAttracting, intensity, g.activeCount, dt)
-	
+
 	g.lastAttract = isAttracting
 	g.lastRepel = g.attractorMass < 0
 
@@ -901,7 +901,7 @@ func setParticleCount(this js.Value, args []js.Value) interface{} {
 			count = 20000
 		}
 		maxParticles = count
-		
+
 		// Resize particle slice if game exists
 		if gameInstance != nil && len(gameInstance.particles) < maxParticles {
 			newParticles := make([]Particle, maxParticles)
@@ -948,7 +948,7 @@ func main() {
 	js.Global().Set("getParticleCount", js.FuncOf(getParticleCount))
 	js.Global().Set("getActiveParticleCount", js.FuncOf(getActiveParticleCount))
 	js.Global().Set("setQualityLevel", js.FuncOf(setQualityLevel))
-	
+
 	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Particle Symphony - ECS Showcase")
