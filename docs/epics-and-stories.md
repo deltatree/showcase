@@ -2317,14 +2317,16 @@ async function loadAmbientSound(preset) {
 | E-005 | Preset-System | 4 | 13 | 🟡 SHOULD | ✅ |
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD | 📋 |
 | E-007 | Web Deployment | 4 | 13 | 🔴 MUST | ✅ |
-| E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST | 📋 |
+| E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST | ✅ ⏳ |
 | **E-009** | **Premium Experience 🔥** | **8** | **32** | **🟡 SHOULD** | **📋 NEU** |
 
-**Legende:** ✅ Done | 🔄 In Progress | 📋 Backlog
+**Legende:** ✅ Done | 🔄 In Progress | 📋 Backlog | ⏳ Waiting (5-Monate-Regel)
 
 ---
 
-**⚠️ WICHTIG: EPIC E-008 (Awesome-Go Listing) BLEIBT UNVERÄNDERT UND VOLLSTÄNDIG GÜLTIG!**
+**⚠️ WICHTIG: EPIC E-008 (Awesome-Go Listing) IST IMPLEMENTIERT!**
+
+Alle Stories von E-008 sind abgeschlossen. Die PR-Einreichung bei awesome-go kann erst nach Erreichen der **5-Monate-Regel** erfolgen (frühestens Mai 2026).
 
 Die neue Epic E-009 ergänzt das Projekt um Premium-Features und steht nicht im Konflikt mit den Awesome-Go Anforderungen.
 

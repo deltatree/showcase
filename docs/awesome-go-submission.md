@@ -22,21 +22,24 @@ The awesome-go requirement is **5+ months of history** since the first commit.
 - [x] pkg.go.dev doc comments for all public APIs
 - [x] Clear description of what the project does
 - [x] Usage instructions and examples
+- [x] Example tests for pkg.go.dev (components, presets)
 
 ### Quality Requirements
 - [x] Go Report Card: A+ expected
-- [x] Code passes: gofmt, go vet, staticcheck, misspell
-- [x] Test coverage: 52.5% total
-  - components: 100%
-  - internal/config: 100%
-  - presets: 100%
-  - systems: 19.5% (GUI-dependent, raylib)
+- [x] Code passes: gofmt, go vet
+- [x] Test coverage:
+  - **components: 100%** ✅
+  - **internal/config: 100%** ✅
+  - **presets: 100%** ✅
+  - systems: 25.1% (GUI-dependent, raylib limitation)
+  - **Total: ~55%** (Core packages 100%)
 
 ### Badges in README
 - [x] Go Report Card badge
 - [x] pkg.go.dev badge
-- [x] Coverage badge (codecov placeholder - needs CI setup)
+- [x] Coverage badge (codecov)
 - [x] License badge
+- [x] GitHub Actions badge
 
 ---
 
