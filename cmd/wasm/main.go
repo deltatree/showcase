@@ -152,11 +152,11 @@ type AudioEngine struct {
 // Calming musical scales - all pentatonic for peaceful sounds
 var (
 	// Peaceful scales only
-	calmMajor    = []float64{130.81, 146.83, 164.81, 196.00, 220.00}         // C3 D3 E3 G3 A3 (low, warm)
-	calmMinor    = []float64{130.81, 155.56, 174.61, 196.00, 233.08}         // C3 Eb3 F3 G3 Bb3
-	ambient      = []float64{196.00, 220.00, 261.63, 293.66, 329.63}         // G3 A3 C4 D4 E4
-	dreamy       = []float64{220.00, 261.63, 293.66, 329.63, 392.00}         // A3 C4 D4 E4 G4
-	meditation   = []float64{130.81, 164.81, 196.00, 261.63, 329.63}         // C3 E3 G3 C4 E4 (open voicing)
+	calmMajor  = []float64{130.81, 146.83, 164.81, 196.00, 220.00} // C3 D3 E3 G3 A3 (low, warm)
+	calmMinor  = []float64{130.81, 155.56, 174.61, 196.00, 233.08} // C3 Eb3 F3 G3 Bb3
+	ambient    = []float64{196.00, 220.00, 261.63, 293.66, 329.63} // G3 A3 C4 D4 E4
+	dreamy     = []float64{220.00, 261.63, 293.66, 329.63, 392.00} // A3 C4 D4 E4 G4
+	meditation = []float64{130.81, 164.81, 196.00, 261.63, 329.63} // C3 E3 G3 C4 E4 (open voicing)
 
 	calmScales = [][]float64{calmMajor, calmMinor, ambient, dreamy, meditation}
 )
@@ -164,7 +164,7 @@ var (
 func NewAudioEngine() *AudioEngine {
 	ae := &AudioEngine{
 		muted:      false,
-		volume:     0.15, // Gentle volume
+		volume:     0.05, // Very quiet - barely audible ambient
 		scaleIndex: 0,
 	}
 	// Create Web Audio context
@@ -196,40 +196,40 @@ func (ae *AudioEngine) PlayPad(freq float64, duration float64, volume float64) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	
+
 	now := ae.ctx.Get("currentTime").Float()
-	
+
 	// Main tone - soft sine wave
 	osc1 := ae.ctx.Call("createOscillator")
 	gain1 := ae.ctx.Call("createGain")
 	osc1.Get("frequency").Set("value", freq)
 	osc1.Set("type", "sine")
-	
+
 	// Slow attack, slow release for dreamy pad sound
 	attackTime := duration * 0.3
 	releaseTime := duration * 0.5
-	
+
 	gain1.Get("gain").Call("setValueAtTime", 0.001, now)
 	gain1.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume, now+attackTime)
 	gain1.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.7, now+duration-releaseTime)
 	gain1.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
-	
+
 	osc1.Call("connect", gain1)
 	gain1.Call("connect", ae.ctx.Get("destination"))
 	osc1.Call("start", now)
 	osc1.Call("stop", now+duration+0.1)
-	
+
 	// Add subtle fifth harmony for richness
 	osc2 := ae.ctx.Call("createOscillator")
 	gain2 := ae.ctx.Call("createGain")
 	osc2.Get("frequency").Set("value", freq*1.5) // Perfect fifth
 	osc2.Set("type", "sine")
-	
+
 	gain2.Get("gain").Call("setValueAtTime", 0.001, now)
 	gain2.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.3, now+attackTime)
 	gain2.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.2, now+duration-releaseTime)
 	gain2.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
-	
+
 	osc2.Call("connect", gain2)
 	gain2.Call("connect", ae.ctx.Get("destination"))
 	osc2.Call("start", now)
@@ -241,81 +241,79 @@ func (ae *AudioEngine) PlayChime(freq float64, volume float64) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
-	
+
 	now := ae.ctx.Get("currentTime").Float()
 	duration := 2.0 // Long, fading chime
-	
+
 	// Triangle wave for soft bell sound
 	osc := ae.ctx.Call("createOscillator")
 	gain := ae.ctx.Call("createGain")
 	osc.Get("frequency").Set("value", freq)
 	osc.Set("type", "triangle")
-	
+
 	// Quick attack, very slow decay - like a singing bowl
 	gain.Get("gain").Call("setValueAtTime", 0.001, now)
 	gain.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume, now+0.02)
 	gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
-	
+
 	osc.Call("connect", gain)
 	gain.Call("connect", ae.ctx.Get("destination"))
 	osc.Call("start", now)
 	osc.Call("stop", now+duration+0.1)
 }
 
-// PlayInteraction - gentle ambient tones based on interaction
+// PlayInteraction - very subtle ambient tones based on interaction
 func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, particleCount int) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
 
 	scale := calmScales[ae.scaleIndex]
-	
+
 	// Gentle note progression
 	noteIdx := (ae.lastNote + 1) % len(scale)
 	ae.lastNote = noteIdx
 	baseFreq := scale[noteIdx]
-	
-	// Softer volume, less variation
-	vol := 0.15 + intensity*0.1
-	if vol > 0.25 {
-		vol = 0.25
+
+	// Very quiet - background ambience only
+	vol := 0.08 + intensity*0.04
+	if vol > 0.12 {
+		vol = 0.12
 	}
-	
-	// Long, sustained pad sounds
-	duration := 1.5 + rand.Float64()*1.0
-	
+
+	// Very long, sustained pad sounds for ambient wash
+	duration := 3.0 + rand.Float64()*2.0
+
 	if isAttract {
-		// Warm pad for attract
-		ae.PlayPad(baseFreq, duration, vol)
+		// Warm, low pad for attract
+		ae.PlayPad(baseFreq*0.5, duration, vol) // Lower octave
 	} else {
-		// Slightly higher, still gentle for repel
-		ae.PlayPad(baseFreq*1.5, duration, vol*0.8)
+		// Slightly different tone for repel
+		ae.PlayPad(baseFreq*0.75, duration, vol*0.7)
 	}
 }
 
-// PlayPresetChange plays a gentle transition sound
+// PlayPresetChange plays a very subtle transition sound
 func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
 
-	// Gentle ascending chime
+	// Very gentle chime - barely audible
 	baseFreqs := []float64{261.63, 293.66, 329.63, 349.23, 392.00} // C D E F G
 	if presetIndex < len(baseFreqs) {
-		ae.PlayChime(baseFreqs[presetIndex], 0.2)
-		// Add octave shimmer
-		ae.PlayChime(baseFreqs[presetIndex]*2, 0.1)
+		ae.PlayChime(baseFreqs[presetIndex], 0.08)
 	}
 
 	ae.scaleIndex = presetIndex % len(calmScales)
 }
 
-// UpdateInteraction - plays ambient sounds during interaction with longer intervals
+// UpdateInteraction - plays very rare ambient sounds during interaction
 func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, intensity float64, particleCount int, dt float32) {
 	if ae.muted {
 		return
 	}
-	
+
 	if !isInteracting {
 		ae.interactTimer = 0
 		return
@@ -324,8 +322,8 @@ func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, int
 	ae.interactTimer -= dt
 	if ae.interactTimer <= 0 {
 		ae.PlayInteraction(isAttract, intensity, particleCount)
-		// Much longer intervals for calm ambient sounds (every 0.8-1.5 seconds)
-		ae.interactTimer = 0.8 + rand.Float32()*0.7
+		// Very long intervals - ambient sounds every 2-4 seconds
+		ae.interactTimer = 2.0 + rand.Float32()*2.0
 	}
 }
 
@@ -925,15 +923,30 @@ func isSoundMuted(this js.Value, args []js.Value) interface{} {
 }
 
 // toggleFullscreen is called from JavaScript to toggle fullscreen mode
+// Uses browser's native Fullscreen API for proper WASM support
 func toggleFullscreen(this js.Value, args []js.Value) interface{} {
-	isFullscreen := ebiten.IsFullscreen()
-	ebiten.SetFullscreen(!isFullscreen)
-	return !isFullscreen
+	doc := js.Global().Get("document")
+	fsElement := doc.Get("fullscreenElement")
+	
+	if fsElement.IsNull() || fsElement.IsUndefined() {
+		// Enter fullscreen
+		canvas := doc.Call("querySelector", "canvas")
+		if !canvas.IsNull() && !canvas.IsUndefined() {
+			canvas.Call("requestFullscreen")
+		}
+		return true
+	} else {
+		// Exit fullscreen
+		doc.Call("exitFullscreen")
+		return false
+	}
 }
 
 // isFullscreen is called from JavaScript to check fullscreen state
 func isFullscreen(this js.Value, args []js.Value) interface{} {
-	return ebiten.IsFullscreen()
+	doc := js.Global().Get("document")
+	fsElement := doc.Get("fullscreenElement")
+	return !fsElement.IsNull() && !fsElement.IsUndefined()
 }
 
 func main() {
