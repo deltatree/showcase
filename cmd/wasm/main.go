@@ -23,15 +23,15 @@ const (
 
 // Particle represents a single particle entity
 type Particle struct {
-	X, Y                   float32
-	VX, VY                 float32
-	AX, AY                 float32
-	R, G, B, A             uint8
-	StartR, StartG, StartB uint8
-	EndR, EndG, EndB       uint8
-	Age, TTL               float32
+	X, Y                       float32
+	VX, VY                     float32
+	AX, AY                     float32
+	R, G, B, A                 uint8
+	StartR, StartG, StartB     uint8
+	EndR, EndG, EndB           uint8
+	Age, TTL                   float32
 	Radius, StartSize, EndSize float32
-	Active                 bool
+	Active                     bool
 }
 
 // Preset represents a particle preset configuration
@@ -81,17 +81,17 @@ var presets = []Preset{
 
 // Game implements ebiten.Game interface
 type Game struct {
-	particles     []Particle
-	rng           *rand.Rand
-	spawnTimer    float32
-	currentPreset int
-	preset        Preset
+	particles      []Particle
+	rng            *rand.Rand
+	spawnTimer     float32
+	currentPreset  int
+	preset         Preset
 	mouseX, mouseY int
-	attractorMass float32
-	lockedMode    int
-	showDebug     bool
-	lastClickTime time.Time
-	activeCount   int
+	attractorMass  float32
+	lockedMode     int
+	showDebug      bool
+	lastClickTime  time.Time
+	activeCount    int
 }
 
 func NewGame() *Game {
