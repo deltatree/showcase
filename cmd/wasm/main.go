@@ -139,42 +139,32 @@ var qualityPresets = map[QualityLevel]QualitySettings{
 	QualityHigh:   {MaxParticles: 12000, GlowEnabled: true, GlowPasses: 2, SpawnMult: 1.5},
 }
 
-// AudioEngine handles Web Audio API for interactive musical sound effects
+// AudioEngine handles Web Audio API for calming ambient sound effects
 type AudioEngine struct {
 	ctx           js.Value
 	muted         bool
 	volume        float64
 	lastNote      int
 	scaleIndex    int
-	chordIndex    int
-	arpIndex      int
 	interactTimer float32
 }
 
-// Musical scales for variety
+// Calming musical scales - all pentatonic for peaceful sounds
 var (
-	// Different scales for different moods
-	pentatonicMajor = []float64{261.63, 293.66, 329.63, 392.00, 440.00}         // C D E G A
-	pentatonicMinor = []float64{261.63, 311.13, 349.23, 392.00, 466.16}         // C Eb F G Bb
-	blues           = []float64{261.63, 311.13, 349.23, 369.99, 392.00, 466.16} // C Eb F F# G Bb
-	japanese        = []float64{261.63, 277.18, 329.63, 392.00, 415.30}         // C Db E G Ab
-	arabic          = []float64{261.63, 277.18, 329.63, 349.23, 392.00, 415.30} // C Db E F G Ab
-	wholeTone       = []float64{261.63, 293.66, 329.63, 369.99, 415.30, 466.16} // C D E F# G# A#
+	// Peaceful scales only
+	calmMajor    = []float64{130.81, 146.83, 164.81, 196.00, 220.00}         // C3 D3 E3 G3 A3 (low, warm)
+	calmMinor    = []float64{130.81, 155.56, 174.61, 196.00, 233.08}         // C3 Eb3 F3 G3 Bb3
+	ambient      = []float64{196.00, 220.00, 261.63, 293.66, 329.63}         // G3 A3 C4 D4 E4
+	dreamy       = []float64{220.00, 261.63, 293.66, 329.63, 392.00}         // A3 C4 D4 E4 G4
+	meditation   = []float64{130.81, 164.81, 196.00, 261.63, 329.63}         // C3 E3 G3 C4 E4 (open voicing)
 
-	allScales = [][]float64{pentatonicMajor, pentatonicMinor, blues, japanese, arabic, wholeTone}
-
-	// Chord types (intervals in semitones from root)
-	chordMajor    = []float64{1.0, 1.26, 1.5}   // Root, Major 3rd, Perfect 5th
-	chordMinor    = []float64{1.0, 1.19, 1.5}   // Root, Minor 3rd, Perfect 5th
-	chordDim      = []float64{1.0, 1.19, 1.414} // Root, Minor 3rd, Tritone
-	chordSus4     = []float64{1.0, 1.335, 1.5}  // Root, Perfect 4th, Perfect 5th
-	chordPowerAdd = []float64{1.0, 1.5, 2.0}    // Root, 5th, Octave
+	calmScales = [][]float64{calmMajor, calmMinor, ambient, dreamy, meditation}
 )
 
 func NewAudioEngine() *AudioEngine {
 	ae := &AudioEngine{
 		muted:      false,
-		volume:     0.3, // Increased volume
+		volume:     0.15, // Gentle volume
 		scaleIndex: 0,
 	}
 	// Create Web Audio context
@@ -184,10 +174,6 @@ func NewAudioEngine() *AudioEngine {
 	}
 	if !audioCtx.IsUndefined() {
 		ae.ctx = audioCtx.New()
-		// Log audio context state for debugging
-		js.Global().Get("console").Call("log", "AudioContext created, state:", ae.ctx.Get("state").String())
-	} else {
-		js.Global().Get("console").Call("warn", "Web Audio API not available")
 	}
 	return ae
 }
@@ -201,169 +187,135 @@ func (ae *AudioEngine) Resume() {
 		state := ae.ctx.Get("state").String()
 		if state == "suspended" {
 			ae.ctx.Call("resume")
-			js.Global().Get("console").Call("log", "AudioContext resumed")
 		}
 	}
 }
 
-// PlayTone plays a single tone with specified waveform
-func (ae *AudioEngine) PlayTone(freq float64, duration float64, volume float64, waveType string) {
+// PlayPad plays a soft, sustained pad sound - very calming
+func (ae *AudioEngine) PlayPad(freq float64, duration float64, volume float64) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
+	
+	now := ae.ctx.Get("currentTime").Float()
+	
+	// Main tone - soft sine wave
+	osc1 := ae.ctx.Call("createOscillator")
+	gain1 := ae.ctx.Call("createGain")
+	osc1.Get("frequency").Set("value", freq)
+	osc1.Set("type", "sine")
+	
+	// Slow attack, slow release for dreamy pad sound
+	attackTime := duration * 0.3
+	releaseTime := duration * 0.5
+	
+	gain1.Get("gain").Call("setValueAtTime", 0.001, now)
+	gain1.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume, now+attackTime)
+	gain1.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.7, now+duration-releaseTime)
+	gain1.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
+	
+	osc1.Call("connect", gain1)
+	gain1.Call("connect", ae.ctx.Get("destination"))
+	osc1.Call("start", now)
+	osc1.Call("stop", now+duration+0.1)
+	
+	// Add subtle fifth harmony for richness
+	osc2 := ae.ctx.Call("createOscillator")
+	gain2 := ae.ctx.Call("createGain")
+	osc2.Get("frequency").Set("value", freq*1.5) // Perfect fifth
+	osc2.Set("type", "sine")
+	
+	gain2.Get("gain").Call("setValueAtTime", 0.001, now)
+	gain2.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.3, now+attackTime)
+	gain2.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume*0.2, now+duration-releaseTime)
+	gain2.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
+	
+	osc2.Call("connect", gain2)
+	gain2.Call("connect", ae.ctx.Get("destination"))
+	osc2.Call("start", now)
+	osc2.Call("stop", now+duration+0.1)
+}
+
+// PlayChime plays a gentle bell-like chime
+func (ae *AudioEngine) PlayChime(freq float64, volume float64) {
+	if ae.muted || !ae.IsReady() {
+		return
+	}
+	
+	now := ae.ctx.Get("currentTime").Float()
+	duration := 2.0 // Long, fading chime
+	
+	// Triangle wave for soft bell sound
 	osc := ae.ctx.Call("createOscillator")
 	gain := ae.ctx.Call("createGain")
-
 	osc.Get("frequency").Set("value", freq)
-	osc.Set("type", waveType)
-
-	now := ae.ctx.Get("currentTime").Float()
-	gain.Get("gain").Call("setValueAtTime", volume*ae.volume, now)
+	osc.Set("type", "triangle")
+	
+	// Quick attack, very slow decay - like a singing bowl
+	gain.Get("gain").Call("setValueAtTime", 0.001, now)
+	gain.Get("gain").Call("linearRampToValueAtTime", volume*ae.volume, now+0.02)
 	gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, now+duration)
-
+	
 	osc.Call("connect", gain)
 	gain.Call("connect", ae.ctx.Get("destination"))
 	osc.Call("start", now)
-	osc.Call("stop", now+duration)
+	osc.Call("stop", now+duration+0.1)
 }
 
-// PlayChord plays multiple notes simultaneously
-func (ae *AudioEngine) PlayChord(baseFreq float64, intervals []float64, duration float64, volume float64, waveType string) {
-	for i, interval := range intervals {
-		// Slight detuning for richness
-		detune := 1.0 + float64(i)*0.002
-		ae.PlayTone(baseFreq*interval*detune, duration, volume/float64(len(intervals)), waveType)
-	}
-}
-
-// PlayArpeggio plays notes in sequence
-func (ae *AudioEngine) PlayArpeggio(baseFreq float64, intervals []float64, noteLen float64, volume float64, waveType string) {
-	if ae.muted || !ae.IsReady() {
-		return
-	}
-	now := ae.ctx.Get("currentTime").Float()
-	for i, interval := range intervals {
-		osc := ae.ctx.Call("createOscillator")
-		gain := ae.ctx.Call("createGain")
-
-		osc.Get("frequency").Set("value", baseFreq*interval)
-		osc.Set("type", waveType)
-
-		startTime := now + float64(i)*noteLen*0.8
-		gain.Get("gain").Call("setValueAtTime", 0.001, now)
-		gain.Get("gain").Call("setValueAtTime", volume*ae.volume, startTime)
-		gain.Get("gain").Call("exponentialRampToValueAtTime", 0.001, startTime+noteLen)
-
-		osc.Call("connect", gain)
-		gain.Call("connect", ae.ctx.Get("destination"))
-		osc.Call("start", now)
-		osc.Call("stop", startTime+noteLen+0.1)
-	}
-}
-
-// PlayInteraction - called during particle interaction, creates varied musical response
+// PlayInteraction - gentle ambient tones based on interaction
 func (ae *AudioEngine) PlayInteraction(isAttract bool, intensity float64, particleCount int) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
 
-	// Choose scale based on attract/repel and randomness
-	scale := allScales[ae.scaleIndex]
-
-	// Base note from scale
-	noteIdx := (ae.lastNote + 1 + rand.Intn(3)) % len(scale)
+	scale := calmScales[ae.scaleIndex]
+	
+	// Gentle note progression
+	noteIdx := (ae.lastNote + 1) % len(scale)
 	ae.lastNote = noteIdx
 	baseFreq := scale[noteIdx]
-
-	// Octave based on intensity
-	octave := 1.0
-	if intensity > 0.5 {
-		octave = 2.0
+	
+	// Softer volume, less variation
+	vol := 0.15 + intensity*0.1
+	if vol > 0.25 {
+		vol = 0.25
 	}
-	if particleCount > 5000 {
-		octave *= 0.5 // Lower octave for many particles
-	}
-	baseFreq *= octave
-
-	// Volume based on intensity
-	vol := 0.1 + intensity*0.3
-	if vol > 0.4 {
-		vol = 0.4
-	}
-
-	// Waveform variety
-	waveTypes := []string{"sine", "triangle", "square", "sawtooth"}
-	waveType := waveTypes[rand.Intn(len(waveTypes))]
-
-	// Different musical responses
-	responseType := rand.Intn(5)
-
-	switch responseType {
-	case 0:
-		// Single note with harmonics
-		ae.PlayTone(baseFreq, 0.2, vol, waveType)
-		ae.PlayTone(baseFreq*2, 0.15, vol*0.3, "sine")
-	case 1:
-		// Major or minor chord based on attract/repel
-		if isAttract {
-			ae.PlayChord(baseFreq, chordMajor, 0.25, vol, waveType)
-		} else {
-			ae.PlayChord(baseFreq, chordMinor, 0.25, vol, waveType)
-		}
-	case 2:
-		// Power chord
-		ae.PlayChord(baseFreq, chordPowerAdd, 0.3, vol, "sawtooth")
-	case 3:
-		// Quick arpeggio up or down
-		intervals := []float64{1.0, 1.26, 1.5, 2.0}
-		if !isAttract {
-			// Reverse for repel
-			intervals = []float64{2.0, 1.5, 1.26, 1.0}
-		}
-		ae.PlayArpeggio(baseFreq, intervals, 0.08, vol, waveType)
-	case 4:
-		// Suspended chord (ethereal)
-		ae.PlayChord(baseFreq, chordSus4, 0.3, vol, "triangle")
-	}
-
-	// Occasionally change scale for variety
-	if rand.Intn(20) == 0 {
-		ae.scaleIndex = (ae.scaleIndex + 1) % len(allScales)
+	
+	// Long, sustained pad sounds
+	duration := 1.5 + rand.Float64()*1.0
+	
+	if isAttract {
+		// Warm pad for attract
+		ae.PlayPad(baseFreq, duration, vol)
+	} else {
+		// Slightly higher, still gentle for repel
+		ae.PlayPad(baseFreq*1.5, duration, vol*0.8)
 	}
 }
 
-// PlayPresetChange plays a distinctive sound when switching presets
+// PlayPresetChange plays a gentle transition sound
 func (ae *AudioEngine) PlayPresetChange(presetIndex int) {
 	if ae.muted || !ae.IsReady() {
 		return
 	}
 
-	// Each preset gets a unique chord/sound
-	presetSounds := []struct {
-		freq  float64
-		chord []float64
-		wave  string
-	}{
-		{329.63, chordMajor, "triangle"},  // Fountain - bright, major
-		{261.63, chordMinor, "sawtooth"},  // Firework - explosive
-		{440.00, chordSus4, "sine"},       // Galaxy - ethereal
-		{349.23, chordPowerAdd, "square"}, // Chaos - aggressive
-		{392.00, chordDim, "triangle"},    // Swarm - mysterious
+	// Gentle ascending chime
+	baseFreqs := []float64{261.63, 293.66, 329.63, 349.23, 392.00} // C D E F G
+	if presetIndex < len(baseFreqs) {
+		ae.PlayChime(baseFreqs[presetIndex], 0.2)
+		// Add octave shimmer
+		ae.PlayChime(baseFreqs[presetIndex]*2, 0.1)
 	}
 
-	if presetIndex < len(presetSounds) {
-		ps := presetSounds[presetIndex]
-		ae.PlayChord(ps.freq, ps.chord, 0.3, 0.35, ps.wave)
-		// Add shimmer
-		ae.PlayTone(ps.freq*4, 0.2, 0.1, "sine")
-	}
-
-	// Switch to a scale that matches the preset mood
-	ae.scaleIndex = presetIndex % len(allScales)
+	ae.scaleIndex = presetIndex % len(calmScales)
 }
 
-// UpdateInteraction should be called each frame during interaction
+// UpdateInteraction - plays ambient sounds during interaction with longer intervals
 func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, intensity float64, particleCount int, dt float32) {
+	if ae.muted {
+		return
+	}
+	
 	if !isInteracting {
 		ae.interactTimer = 0
 		return
@@ -372,13 +324,18 @@ func (ae *AudioEngine) UpdateInteraction(isInteracting bool, isAttract bool, int
 	ae.interactTimer -= dt
 	if ae.interactTimer <= 0 {
 		ae.PlayInteraction(isAttract, intensity, particleCount)
-		// Variable timing based on intensity - faster sounds for more intense interaction
-		ae.interactTimer = 0.08 + (1.0-float32(intensity))*0.15 + rand.Float32()*0.05
+		// Much longer intervals for calm ambient sounds (every 0.8-1.5 seconds)
+		ae.interactTimer = 0.8 + rand.Float32()*0.7
 	}
 }
 
 func (ae *AudioEngine) ToggleMute() {
 	ae.muted = !ae.muted
+	js.Global().Get("console").Call("log", "Audio muted:", ae.muted)
+}
+
+func (ae *AudioEngine) SetMuted(muted bool) {
+	ae.muted = muted
 }
 
 func (ae *AudioEngine) IsMuted() bool {
@@ -950,12 +907,45 @@ func setQualityLevel(this js.Value, args []js.Value) interface{} {
 	return nil
 }
 
+// toggleSound is called from JavaScript to toggle sound on/off
+func toggleSound(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil && gameInstance.audio != nil {
+		gameInstance.audio.ToggleMute()
+		return gameInstance.audio.IsMuted()
+	}
+	return true
+}
+
+// isSoundMuted is called from JavaScript to check mute state
+func isSoundMuted(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil && gameInstance.audio != nil {
+		return gameInstance.audio.IsMuted()
+	}
+	return true
+}
+
+// toggleFullscreen is called from JavaScript to toggle fullscreen mode
+func toggleFullscreen(this js.Value, args []js.Value) interface{} {
+	isFullscreen := ebiten.IsFullscreen()
+	ebiten.SetFullscreen(!isFullscreen)
+	return !isFullscreen
+}
+
+// isFullscreen is called from JavaScript to check fullscreen state
+func isFullscreen(this js.Value, args []js.Value) interface{} {
+	return ebiten.IsFullscreen()
+}
+
 func main() {
 	// Register JavaScript API
 	js.Global().Set("setParticleCount", js.FuncOf(setParticleCount))
 	js.Global().Set("getParticleCount", js.FuncOf(getParticleCount))
 	js.Global().Set("getActiveParticleCount", js.FuncOf(getActiveParticleCount))
 	js.Global().Set("setQualityLevel", js.FuncOf(setQualityLevel))
+	js.Global().Set("toggleSound", js.FuncOf(toggleSound))
+	js.Global().Set("isSoundMuted", js.FuncOf(isSoundMuted))
+	js.Global().Set("toggleFullscreen", js.FuncOf(toggleFullscreen))
+	js.Global().Set("isFullscreen", js.FuncOf(isFullscreen))
 
 	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)

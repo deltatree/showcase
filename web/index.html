@@ -617,6 +617,12 @@
                         <button class="quality-btn active" id="sound-btn">🔊 ON</button>
                     </div>
                 </div>
+                <div class="slider-item">
+                    <span class="slider-label">🖥️ Fullscreen</span>
+                    <div class="quality-buttons">
+                        <button class="quality-btn" id="fullscreen-btn">⛶ Enter</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -708,16 +714,33 @@
                 });
             });
             
-            // Sound toggle
+            // Sound toggle - use direct Go function
             const soundBtn = document.getElementById('sound-btn');
-            let soundOn = true;
             soundBtn.addEventListener('click', () => {
-                soundOn = !soundOn;
-                soundBtn.textContent = soundOn ? '🔊 ON' : '🔇 OFF';
-                soundBtn.classList.toggle('active', soundOn);
-                // Trigger M key press in WASM
-                const event = new KeyboardEvent('keydown', { key: 'm', code: 'KeyM' });
-                document.dispatchEvent(event);
+                if (typeof toggleSound === 'function') {
+                    const muted = toggleSound();
+                    soundBtn.textContent = muted ? '🔇 OFF' : '🔊 ON';
+                    soundBtn.classList.toggle('active', !muted);
+                }
+            });
+            
+            // Fullscreen toggle
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            fullscreenBtn.addEventListener('click', () => {
+                if (typeof toggleFullscreen === 'function') {
+                    const isFs = toggleFullscreen();
+                    fullscreenBtn.textContent = isFs ? '⛶ Exit' : '⛶ Enter';
+                    fullscreenBtn.classList.toggle('active', isFs);
+                }
+            });
+            
+            // Update fullscreen button on F11 or ESC
+            document.addEventListener('fullscreenchange', () => {
+                if (typeof isFullscreen === 'function') {
+                    const isFs = isFullscreen();
+                    fullscreenBtn.textContent = isFs ? '⛶ Exit' : '⛶ Enter';
+                    fullscreenBtn.classList.toggle('active', isFs);
+                }
             });
             
             // Update active particle count display periodically
