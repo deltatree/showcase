@@ -1,0 +1,19 @@
+{
+  "window": {
+    "width": 1280,
+    "height": 720,
+    "title": "Particle Symphony - ECS Showcase",
+    "fps": 60
+  },
+  "particles": {
+    "maxCount": 10000,
+    "defaultSize": 3.0,
+    "spawnRate": 100,
+    "defaultTTL": 5.0
+  },
+  "physics": {
+    "gravity": 0.0,
+    "damping": 0.99,
+    "maxVelocity": 500.0
+  }
+}
