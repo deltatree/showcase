@@ -50,7 +50,49 @@
             overflow-x: hidden;
             /* Prevent pull-to-refresh and bounce on mobile */
             overscroll-behavior: none;
-            touch-action: none;
+            /* DO NOT use touch-action: none on body - breaks iOS */
+        }
+        
+        /* MOBILE FULLSCREEN MODE */
+        @media (max-width: 768px) {
+            html, body {
+                height: 100%;
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+            }
+            
+            /* Hide everything except canvas on mobile */
+            header, .controls-panel, footer {
+                display: none !important;
+            }
+            
+            .canvas-container {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                height: 100dvh !important; /* Dynamic viewport height for iOS */
+                padding: 0 !important;
+                margin: 0 !important;
+                z-index: 1000;
+            }
+            
+            #game-container {
+                width: 100% !important;
+                height: 100% !important;
+                border-radius: 0 !important;
+                border: none !important;
+            }
+            
+            #game-container canvas {
+                width: 100% !important;
+                height: 100% !important;
+                touch-action: none; /* Only on canvas, not body */
+            }
         }
         
         /* Header */
@@ -1606,6 +1648,162 @@
     }
     
     setTimeout(addGyroButton, 1000);
+
+    // ===========================================
+    // MOBILE FULLSCREEN UI OVERLAY 📱
+    // ===========================================
+    function createMobileUI() {
+        if (!/Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) return;
+        
+        // Wait for canvas
+        const canvas = document.querySelector('canvas');
+        if (!canvas) {
+            setTimeout(createMobileUI, 200);
+            return;
+        }
+        
+        // Create mobile overlay container
+        const overlay = document.createElement('div');
+        overlay.id = 'mobile-ui-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 10000;
+        `;
+        
+        // Top bar with preset name
+        const topBar = document.createElement('div');
+        topBar.id = 'mobile-top-bar';
+        topBar.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            padding-top: max(12px, env(safe-area-inset-top));
+            background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        `;
+        topBar.innerHTML = `
+            <span id="preset-name" style="color: white; font-size: 18px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Galaxy</span>
+            <span id="particle-count-display" style="color: rgba(255,255,255,0.7); font-size: 14px;">0</span>
+        `;
+        overlay.appendChild(topBar);
+        
+        // Bottom bar with preset buttons
+        const bottomBar = document.createElement('div');
+        bottomBar.id = 'mobile-bottom-bar';
+        bottomBar.style.cssText = `
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            pointer-events: auto;
+        `;
+        
+        const presetNames = ['Galaxy', 'Firework', 'Swarm', 'Fountain', 'Chaos'];
+        const presetEmojis = ['🌌', '🎆', '🐝', '⛲', '💥'];
+        
+        presetNames.forEach((name, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'mobile-preset-btn';
+            btn.dataset.preset = i;
+            btn.innerHTML = presetEmojis[i];
+            btn.style.cssText = `
+                width: 56px;
+                height: 56px;
+                border-radius: 50%;
+                border: 2px solid rgba(255,255,255,0.3);
+                background: ${i === 0 ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'rgba(255,255,255,0.1)'};
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            `;
+            btn.onclick = () => {
+                if (typeof window.switchPresetJS === 'function') {
+                    window.switchPresetJS(i);
+                } else if (typeof nextPreset === 'function') {
+                    // Fallback: cycle to correct preset
+                    const current = typeof getCurrentPreset === 'function' ? getCurrentPreset() : 0;
+                    const diff = i - current;
+                    for (let j = 0; j < Math.abs(diff); j++) {
+                        if (diff > 0) nextPreset();
+                        else prevPreset();
+                    }
+                }
+                // Update UI
+                document.querySelectorAll('.mobile-preset-btn').forEach((b, idx) => {
+                    b.style.background = idx === i 
+                        ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+                        : 'rgba(255,255,255,0.1)';
+                });
+                document.getElementById('preset-name').textContent = name;
+                HapticFeedback.preset();
+            };
+            bottomBar.appendChild(btn);
+        });
+        
+        overlay.appendChild(bottomBar);
+        
+        // Hint overlay (shows briefly on load)
+        const hint = document.createElement('div');
+        hint.id = 'mobile-hint';
+        hint.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 16px;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        `;
+        hint.innerHTML = `
+            <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
+            <div><b>Tap</b> to attract particles</div>
+            <div style="margin-top: 8px; opacity: 0.7;">Two fingers to repel</div>
+        `;
+        overlay.appendChild(hint);
+        
+        document.body.appendChild(overlay);
+        
+        // Hide hint after 3 seconds
+        setTimeout(() => {
+            hint.style.opacity = '0';
+            setTimeout(() => hint.remove(), 500);
+        }, 3000);
+        
+        // Update particle count periodically
+        setInterval(() => {
+            if (typeof getActiveParticleCount === 'function') {
+                const count = getActiveParticleCount();
+                document.getElementById('particle-count-display').textContent = count.toLocaleString();
+            }
+        }, 500);
+        
+        console.log('[MobileUI] Overlay created');
+    }
+    
+    setTimeout(createMobileUI, 500);
 
     console.log('[Mobile] Epic E-011 loaded! 📱🔥');
     </script>

@@ -396,26 +396,32 @@ func NewGame() *Game {
 
 	// Set screen size based on device
 	if isMobile {
-		// Get actual screen dimensions from browser
+		// Get actual screen dimensions from browser - USE FULL SCREEN on mobile!
 		window := js.Global().Get("window")
 		if !window.IsUndefined() {
 			w := window.Get("innerWidth").Int()
 			h := window.Get("innerHeight").Int()
-			// Use full width, reasonable height for mobile
+			// Use FULL viewport on mobile for immersive experience
 			screenWidth = w
-			if screenWidth > 480 {
-				screenWidth = 480 // Cap for performance
+			screenHeight = h
+			// Limit for very large tablets to maintain performance
+			if screenWidth > 1024 {
+				screenWidth = 1024
 			}
-			screenHeight = int(float64(screenWidth) * 0.75) // 4:3 aspect for mobile
-			if screenHeight > h-150 {
-				screenHeight = h - 150 // Leave room for controls
+			if screenHeight > 1024 {
+				screenHeight = 1024
 			}
 		} else {
-			screenWidth = 360
-			screenHeight = 270
+			screenWidth = 390 // iPhone 14 default
+			screenHeight = 844
 		}
-		// Reduce max particles for mobile
-		maxParticles = 2000
+		// Adjust particles based on screen size for performance
+		pixels := screenWidth * screenHeight
+		if pixels > 500000 {
+			maxParticles = 3000 // Larger screens get more particles
+		} else {
+			maxParticles = 2000
+		}
 	} else {
 		screenWidth = desktopWidth
 		screenHeight = desktopHeight
