@@ -47,7 +47,6 @@ web/wasm_exec.js
 
 # Node.js / Playwright
 node_modules/
-package-lock.json
 playwright-report/
 test-results/
 test-results.json
