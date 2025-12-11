@@ -2,11 +2,27 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-title" content="Particles">
+    <meta name="theme-color" content="#667eea">
     <meta name="description" content="Interactive particle simulation showcase using ECS architecture and WebAssembly">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Particle Symphony">
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="msapplication-TileImage" content="icons/icon-144.png">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-128.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="icons/icon-96.png">
+    <link rel="icon" type="image/svg+xml" href="icons/icon-src.svg">
+    <!-- Splash Screens for iOS (minimal set) -->
+    <meta name="apple-mobile-web-app-title" content="Particles">
     <title>🎆 Particle Symphony - ECS Showcase</title>
     <style>
         * {
@@ -748,6 +764,9 @@
                 // Run the Go WASM
                 go.run(result.instance);
                 
+                // Signal that WASM is ready (used by Playwright tests)
+                window.wasmReady = true;
+                
                 // Move canvas into game-container after Ebitengine creates it
                 setTimeout(() => {
                     const canvas = document.querySelector('canvas');
@@ -983,6 +1002,612 @@
                 e.preventDefault();
             }
         }, { passive: false });
+    </script>
+
+    <!-- MOBILE EXPERIENCE EPIC E-011 🔥📱 -->
+    <script>
+    // ===========================================
+    // E-011-S05: PWA - Service Worker Registration
+    // ===========================================
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => {
+                    console.log('[PWA] Service Worker registered:', reg.scope);
+                })
+                .catch(err => {
+                    console.log('[PWA] Service Worker registration failed:', err);
+                });
+        });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showInstallButton();
+    });
+
+    function showInstallButton() {
+        const btn = document.createElement('button');
+        btn.id = 'pwa-install-btn';
+        btn.innerHTML = '📲 Install App';
+        btn.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            z-index: 9999;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            animation: pulse 2s infinite;
+        `;
+        btn.onclick = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('[PWA] Install prompt outcome:', outcome);
+                deferredPrompt = null;
+                btn.remove();
+            }
+        };
+        document.body.appendChild(btn);
+        
+        // Add pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Auto-hide after 30 seconds
+        setTimeout(() => btn.remove(), 30000);
+    }
+
+    // ===========================================
+    // E-011-S06: Haptic Feedback 📳
+    // ===========================================
+    const HapticFeedback = {
+        enabled: true,
+        
+        vibrate(pattern) {
+            if (!this.enabled || !navigator.vibrate) return;
+            try {
+                navigator.vibrate(pattern);
+            } catch (e) {
+                // Ignore errors on unsupported devices
+            }
+        },
+        
+        tap() {
+            this.vibrate([10]);
+        },
+        
+        attract() {
+            this.vibrate([20, 30, 20]);
+        },
+        
+        repel() {
+            this.vibrate([40]);
+        },
+        
+        preset() {
+            this.vibrate([15, 30, 15, 30, 15]);
+        },
+        
+        doubleTap() {
+            this.vibrate([10, 50, 30]);
+        },
+        
+        density(level) {
+            // Subtle vibration based on particle density at touch point
+            const intensity = Math.min(level / 100, 1);
+            const duration = Math.floor(5 + intensity * 15);
+            this.vibrate([duration]);
+        },
+        
+        toggle() {
+            this.enabled = !this.enabled;
+            console.log('[Haptic] Enabled:', this.enabled);
+            return this.enabled;
+        }
+    };
+    window.HapticFeedback = HapticFeedback;
+
+    // ===========================================
+    // E-011-S07: Gyroscope & Accelerometer 🎮
+    // ===========================================
+    const GyroController = {
+        enabled: false,
+        hasPermission: false,
+        gravityX: 0,
+        gravityY: 0,
+        sensitivity: 1.0,
+        lastShake: 0,
+        shakeThreshold: 30,
+        
+        async requestPermission() {
+            // iOS 13+ requires explicit permission
+            if (typeof DeviceMotionEvent !== 'undefined' && 
+                typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceMotionEvent.requestPermission();
+                    this.hasPermission = (permission === 'granted');
+                    console.log('[Gyro] Permission:', permission);
+                    return this.hasPermission;
+                } catch (e) {
+                    console.error('[Gyro] Permission error:', e);
+                    return false;
+                }
+            }
+            // Android and older iOS don't need permission
+            this.hasPermission = true;
+            return true;
+        },
+        
+        start() {
+            if (!this.hasPermission) {
+                console.warn('[Gyro] No permission granted');
+                return false;
+            }
+            
+            window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
+            window.addEventListener('devicemotion', this.handleMotion.bind(this));
+            this.enabled = true;
+            console.log('[Gyro] Started');
+            return true;
+        },
+        
+        stop() {
+            window.removeEventListener('deviceorientation', this.handleOrientation);
+            window.removeEventListener('devicemotion', this.handleMotion);
+            this.enabled = false;
+            this.gravityX = 0;
+            this.gravityY = 0;
+            console.log('[Gyro] Stopped');
+        },
+        
+        toggle() {
+            if (this.enabled) {
+                this.stop();
+            } else {
+                this.start();
+            }
+            return this.enabled;
+        },
+        
+        handleOrientation(e) {
+            if (!this.enabled) return;
+            
+            // gamma: left-to-right tilt (-90 to 90)
+            // beta: front-to-back tilt (-180 to 180)
+            const gamma = e.gamma || 0;
+            const beta = e.beta || 0;
+            
+            // Normalize to -1 to 1 range
+            this.gravityX = (gamma / 45) * this.sensitivity;
+            this.gravityY = ((beta - 45) / 45) * this.sensitivity;  // 45° is "neutral" holding position
+            
+            // Clamp values
+            this.gravityX = Math.max(-1, Math.min(1, this.gravityX));
+            this.gravityY = Math.max(-1, Math.min(1, this.gravityY));
+            
+            // Send to WASM if available
+            if (typeof setGyroGravity === 'function') {
+                setGyroGravity(this.gravityX * 500, this.gravityY * 500);
+            }
+        },
+        
+        handleMotion(e) {
+            if (!this.enabled) return;
+            
+            const acc = e.accelerationIncludingGravity;
+            if (!acc) return;
+            
+            // Shake detection
+            const magnitude = Math.sqrt(acc.x * acc.x + acc.y * acc.y + acc.z * acc.z);
+            const now = Date.now();
+            
+            if (magnitude > this.shakeThreshold && now - this.lastShake > 1000) {
+                this.lastShake = now;
+                console.log('[Gyro] Shake detected!');
+                HapticFeedback.vibrate([100, 50, 100]);
+                
+                // Reset particles on shake
+                if (typeof resetParticles === 'function') {
+                    resetParticles();
+                }
+            }
+        },
+        
+        setSensitivity(value) {
+            this.sensitivity = Math.max(0.1, Math.min(2.0, value));
+        }
+    };
+    window.GyroController = GyroController;
+
+    // ===========================================
+    // E-011-S01 & S02: Enhanced Responsive Canvas
+    // ===========================================
+    function updateCanvasSize() {
+        const container = document.getElementById('game-container');
+        const canvas = container?.querySelector('canvas');
+        if (!canvas) return;
+        
+        const dpr = window.devicePixelRatio || 1;
+        const isMobile = window.innerWidth < 768;
+        
+        if (isMobile) {
+            // Full width on mobile
+            const w = window.innerWidth;
+            const h = Math.min(window.innerHeight * 0.6, w * 0.75);
+            
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            
+            // Notify WASM of size change
+            if (typeof setCanvasSize === 'function') {
+                setCanvasSize(w, h, dpr);
+            }
+        }
+    }
+    
+    window.addEventListener('resize', updateCanvasSize);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(updateCanvasSize, 100);
+    });
+
+    // ===========================================
+    // E-011-S03: Multi-Touch Attraktoren 🔥
+    // ===========================================
+    const MultiTouchManager = {
+        attractors: new Map(), // touchId -> { x, y, color }
+        colors: [
+            '#ff6b6b', // Red
+            '#4ecdc4', // Teal
+            '#ffe66d', // Yellow
+            '#95e1d3', // Mint
+            '#f38181', // Coral
+        ],
+        holdTimers: new Map(),
+        
+        getTouchPosition(touch, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
+            };
+        },
+        
+        handleTouchStart(e) {
+            const canvas = e.target;
+            if (canvas.tagName !== 'CANVAS') return;
+            
+            for (const touch of e.changedTouches) {
+                const pos = this.getTouchPosition(touch, canvas);
+                const colorIdx = this.attractors.size % this.colors.length;
+                
+                this.attractors.set(touch.identifier, {
+                    x: pos.x,
+                    y: pos.y,
+                    color: this.colors[colorIdx],
+                    isRepel: false,
+                    startTime: Date.now()
+                });
+                
+                // Hold timer for switching to repel mode
+                const timer = setTimeout(() => {
+                    const attractor = this.attractors.get(touch.identifier);
+                    if (attractor) {
+                        attractor.isRepel = true;
+                        HapticFeedback.repel();
+                    }
+                }, 500);
+                this.holdTimers.set(touch.identifier, timer);
+                
+                HapticFeedback.tap();
+            }
+            
+            this.updateWasm();
+        },
+        
+        handleTouchMove(e) {
+            const canvas = e.target;
+            if (canvas.tagName !== 'CANVAS') return;
+            
+            for (const touch of e.changedTouches) {
+                const attractor = this.attractors.get(touch.identifier);
+                if (attractor) {
+                    const pos = this.getTouchPosition(touch, canvas);
+                    attractor.x = pos.x;
+                    attractor.y = pos.y;
+                }
+            }
+            
+            this.updateWasm();
+        },
+        
+        handleTouchEnd(e) {
+            for (const touch of e.changedTouches) {
+                this.attractors.delete(touch.identifier);
+                
+                const timer = this.holdTimers.get(touch.identifier);
+                if (timer) {
+                    clearTimeout(timer);
+                    this.holdTimers.delete(touch.identifier);
+                }
+            }
+            
+            this.updateWasm();
+        },
+        
+        updateWasm() {
+            // Send all active attractors to WASM
+            if (typeof setMultiTouchAttractors === 'function') {
+                const attractorArray = Array.from(this.attractors.values());
+                setMultiTouchAttractors(JSON.stringify(attractorArray));
+            }
+        }
+    };
+
+    // Setup multi-touch after WASM loads
+    function setupMultiTouch() {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) {
+            setTimeout(setupMultiTouch, 100);
+            return;
+        }
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            MultiTouchManager.handleTouchStart(e);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            MultiTouchManager.handleTouchMove(e);
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            MultiTouchManager.handleTouchEnd(e);
+        });
+        
+        canvas.addEventListener('touchcancel', (e) => {
+            MultiTouchManager.handleTouchEnd(e);
+        });
+        
+        console.log('[MultiTouch] Setup complete');
+    }
+    
+    setTimeout(setupMultiTouch, 200);
+
+    // ===========================================
+    // E-011-S04: Mobile Performance Detection
+    // ===========================================
+    const PerformanceManager = {
+        tier: 'medium',
+        fpsHistory: [],
+        
+        detectTier() {
+            const cores = navigator.hardwareConcurrency || 2;
+            const memory = navigator.deviceMemory || 2;
+            const connection = navigator.connection?.effectiveType || '4g';
+            const isMobile = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent);
+            
+            let score = 0;
+            score += cores >= 8 ? 3 : (cores >= 4 ? 2 : 1);
+            score += memory >= 8 ? 3 : (memory >= 4 ? 2 : 1);
+            score += connection === '4g' ? 2 : (connection === '3g' ? 1 : 0);
+            score -= isMobile ? 1 : 0;
+            
+            if (score >= 7) {
+                this.tier = 'high';
+            } else if (score >= 4) {
+                this.tier = 'medium';
+            } else {
+                this.tier = 'low';
+            }
+            
+            console.log('[Performance] Detected tier:', this.tier, { cores, memory, connection, isMobile, score });
+            return this.tier;
+        },
+        
+        applySettings() {
+            const settings = {
+                low: { particles: 1000, quality: 0 },
+                medium: { particles: 4000, quality: 1 },
+                high: { particles: 10000, quality: 2 }
+            };
+            
+            const s = settings[this.tier];
+            if (typeof setParticleCount === 'function') {
+                setParticleCount(s.particles);
+            }
+            if (typeof setQualityLevel === 'function') {
+                setQualityLevel(s.quality);
+            }
+            
+            // Update UI
+            const slider = document.getElementById('particle-slider');
+            const display = document.getElementById('particle-count');
+            if (slider) slider.value = s.particles;
+            if (display) display.textContent = s.particles.toLocaleString();
+            
+            // Update quality buttons
+            document.querySelectorAll('.quality-btn[data-quality]').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.quality) === s.quality);
+            });
+        },
+        
+        monitorFPS() {
+            setInterval(() => {
+                if (typeof ebiten === 'undefined') return;
+                const fps = ebiten.actualFPS?.() || 60;
+                this.fpsHistory.push(fps);
+                if (this.fpsHistory.length > 60) {
+                    this.fpsHistory.shift();
+                }
+                
+                // Auto-adjust if FPS drops below 30 for 2 seconds
+                const avgFPS = this.fpsHistory.reduce((a, b) => a + b, 0) / this.fpsHistory.length;
+                if (avgFPS < 30 && this.tier !== 'low') {
+                    console.log('[Performance] Auto-adjusting to lower tier, avg FPS:', avgFPS);
+                    this.tier = 'low';
+                    this.applySettings();
+                }
+            }, 1000);
+        },
+        
+        checkBatterySaver() {
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    if (battery.level < 0.2 && !battery.charging) {
+                        console.log('[Performance] Battery saver mode activated');
+                        this.tier = 'low';
+                        this.applySettings();
+                    }
+                    
+                    battery.addEventListener('levelchange', () => {
+                        if (battery.level < 0.2 && !battery.charging && this.tier !== 'low') {
+                            this.tier = 'low';
+                            this.applySettings();
+                        }
+                    });
+                });
+            }
+        }
+    };
+
+    // Auto-detect and apply on mobile
+    if (/Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) {
+        setTimeout(() => {
+            PerformanceManager.detectTier();
+            PerformanceManager.applySettings();
+            PerformanceManager.checkBatterySaver();
+        }, 500);
+    }
+
+    // ===========================================
+    // E-011-S08: Mobile UI/UX - Swipe Gestures
+    // ===========================================
+    const SwipeGestures = {
+        startX: 0,
+        startY: 0,
+        threshold: 50,
+        
+        init(canvas) {
+            if (!canvas) return;
+            
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    this.startX = e.touches[0].clientX;
+                    this.startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+            
+            canvas.addEventListener('touchend', (e) => {
+                if (e.changedTouches.length !== 1) return;
+                
+                const endX = e.changedTouches[0].clientX;
+                const endY = e.changedTouches[0].clientY;
+                const deltaX = endX - this.startX;
+                const deltaY = endY - this.startY;
+                
+                // Only trigger swipe if horizontal movement > vertical
+                if (Math.abs(deltaX) > this.threshold && Math.abs(deltaX) > Math.abs(deltaY)) {
+                    if (deltaX > 0) {
+                        // Swipe right - next preset
+                        this.nextPreset();
+                    } else {
+                        // Swipe left - previous preset
+                        this.prevPreset();
+                    }
+                }
+            });
+        },
+        
+        nextPreset() {
+            if (typeof nextPreset === 'function') {
+                nextPreset();
+                HapticFeedback.preset();
+            }
+        },
+        
+        prevPreset() {
+            if (typeof prevPreset === 'function') {
+                prevPreset();
+                HapticFeedback.preset();
+            }
+        }
+    };
+    
+    // Init swipe gestures after canvas loads
+    setTimeout(() => {
+        const canvas = document.querySelector('canvas');
+        SwipeGestures.init(canvas);
+    }, 500);
+
+    // ===========================================
+    // Gyro Button for Mobile
+    // ===========================================
+    function addGyroButton() {
+        if (!/Mobile|Android|iPhone|iPad/.test(navigator.userAgent)) return;
+        
+        const btn = document.createElement('button');
+        btn.id = 'gyro-btn';
+        btn.innerHTML = '🎮';
+        btn.title = 'Enable Gyroscope';
+        btn.style.cssText = `
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            z-index: 9999;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        `;
+        
+        btn.onclick = async () => {
+            if (!GyroController.hasPermission) {
+                const granted = await GyroController.requestPermission();
+                if (!granted) {
+                    alert('Gyroscope permission denied. Please enable in Settings.');
+                    return;
+                }
+            }
+            
+            const enabled = GyroController.toggle();
+            btn.style.background = enabled 
+                ? 'linear-gradient(135deg, #667eea, #764ba2)' 
+                : 'rgba(102, 126, 234, 0.5)';
+            btn.innerHTML = enabled ? '🎮✓' : '🎮';
+            HapticFeedback.tap();
+        };
+        
+        document.body.appendChild(btn);
+    }
+    
+    setTimeout(addGyroButton, 1000);
+
+    console.log('[Mobile] Epic E-011 loaded! 📱🔥');
     </script>
 </body>
 </html>

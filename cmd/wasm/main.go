@@ -369,6 +369,20 @@ type Game struct {
 	touchIDs      []ebiten.TouchID
 	lastTouchTime time.Time
 	isMobile      bool
+	// Multi-Touch Attraktoren (E-011-S03)
+	multiTouchAttractors []MultiTouchAttractor
+	// Gyroscope gravity (E-011-S07)
+	gyroGravityX float32
+	gyroGravityY float32
+	gyroEnabled  bool
+}
+
+// MultiTouchAttractor represents a touch-based attractor with color
+type MultiTouchAttractor struct {
+	X       float32
+	Y       float32
+	Color   string
+	IsRepel bool
 }
 
 func NewGame() *Game {
@@ -414,15 +428,17 @@ func NewGame() *Game {
 	}
 
 	g := &Game{
-		particles:       make([]Particle, maxParticles),
-		rng:             rand.New(rand.NewSource(time.Now().UnixNano())),
-		currentPreset:   0,
-		showDebug:       false, // Hide debug by default
-		lockedMode:      0,
-		audio:           NewAudioEngine(),
-		quality:         defaultQuality,
-		qualitySettings: qualityPresets[defaultQuality],
-		isMobile:        isMobile,
+		particles:            make([]Particle, maxParticles),
+		rng:                  rand.New(rand.NewSource(time.Now().UnixNano())),
+		currentPreset:        0,
+		showDebug:            false, // Hide debug by default
+		lockedMode:           0,
+		audio:                NewAudioEngine(),
+		quality:              defaultQuality,
+		qualitySettings:      qualityPresets[defaultQuality],
+		isMobile:             isMobile,
+		multiTouchAttractors: make([]MultiTouchAttractor, 0, 10),
+		gyroEnabled:          false,
 	}
 	g.preset = presets[0]
 	return g
@@ -643,7 +659,30 @@ func (g *Game) Update() error {
 		}
 		g.activeCount++
 
-		if g.attractorMass != 0 {
+		// Apply gyroscope gravity if enabled (E-011-S07)
+		if g.gyroEnabled {
+			p.AX += g.gyroGravityX
+			p.AY += g.gyroGravityY
+		}
+
+		// Apply multi-touch attractors (E-011-S03)
+		if len(g.multiTouchAttractors) > 0 {
+			for _, att := range g.multiTouchAttractors {
+				dx := att.X - p.X
+				dy := att.Y - p.Y
+				dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+				if dist < 10 {
+					dist = 10
+				}
+				mass := float32(5000)
+				if att.IsRepel {
+					mass = -5000
+				}
+				force := mass / (dist * dist) * 500
+				p.AX += dx / dist * force
+				p.AY += dy / dist * force
+			}
+		} else if g.attractorMass != 0 {
 			dx := float32(g.mouseX) - p.X
 			dy := float32(g.mouseY) - p.Y
 			dist := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -1161,6 +1200,115 @@ func isFullscreen(this js.Value, args []js.Value) interface{} {
 	return !fsElement.IsNull() && !fsElement.IsUndefined()
 }
 
+// setGyroGravity is called from JavaScript to set gyroscope-based gravity (E-011-S07)
+func setGyroGravity(this js.Value, args []js.Value) interface{} {
+	if len(args) >= 2 && gameInstance != nil {
+		gameInstance.gyroGravityX = float32(args[0].Float())
+		gameInstance.gyroGravityY = float32(args[1].Float())
+		gameInstance.gyroEnabled = true
+	}
+	return nil
+}
+
+// disableGyro disables gyroscope gravity
+func disableGyro(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		gameInstance.gyroEnabled = false
+		gameInstance.gyroGravityX = 0
+		gameInstance.gyroGravityY = 0
+	}
+	return nil
+}
+
+// setMultiTouchAttractors is called from JavaScript with JSON array of attractors (E-011-S03)
+func setMultiTouchAttractors(this js.Value, args []js.Value) interface{} {
+	if len(args) == 0 || gameInstance == nil {
+		return nil
+	}
+
+	jsonStr := args[0].String()
+	if jsonStr == "" || jsonStr == "[]" {
+		gameInstance.multiTouchAttractors = gameInstance.multiTouchAttractors[:0]
+		return nil
+	}
+
+	// Parse JSON manually (simple parser for our format)
+	// Format: [{"x":100,"y":200,"color":"#ff6b6b","isRepel":false},...]
+	gameInstance.multiTouchAttractors = gameInstance.multiTouchAttractors[:0]
+
+	// Use JavaScript JSON.parse for robust parsing
+	jsonParse := js.Global().Get("JSON").Call("parse", jsonStr)
+	if jsonParse.IsUndefined() || jsonParse.IsNull() {
+		return nil
+	}
+
+	length := jsonParse.Length()
+	for i := 0; i < length; i++ {
+		item := jsonParse.Index(i)
+		att := MultiTouchAttractor{
+			X:       float32(item.Get("x").Float()),
+			Y:       float32(item.Get("y").Float()),
+			Color:   item.Get("color").String(),
+			IsRepel: item.Get("isRepel").Bool(),
+		}
+		gameInstance.multiTouchAttractors = append(gameInstance.multiTouchAttractors, att)
+	}
+
+	return nil
+}
+
+// resetParticles resets all particles (E-011-S07 shake detection)
+func resetParticles(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		for i := range gameInstance.particles {
+			gameInstance.particles[i].Active = false
+		}
+	}
+	return nil
+}
+
+// nextPreset switches to the next preset (E-011-S08 swipe gestures)
+func nextPresetJS(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		newIndex := (gameInstance.currentPreset + 1) % len(presets)
+		gameInstance.switchPreset(newIndex)
+	}
+	return nil
+}
+
+// prevPreset switches to the previous preset
+func prevPresetJS(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		newIndex := gameInstance.currentPreset - 1
+		if newIndex < 0 {
+			newIndex = len(presets) - 1
+		}
+		gameInstance.switchPreset(newIndex)
+	}
+	return nil
+}
+
+// setCanvasSize updates the canvas logical size (E-011-S01)
+func setCanvasSize(this js.Value, args []js.Value) interface{} {
+	if len(args) >= 2 {
+		w := args[0].Int()
+		h := args[1].Int()
+		if w > 0 && w < 2000 && h > 0 && h < 2000 {
+			screenWidth = w
+			screenHeight = h
+		}
+	}
+	return nil
+}
+
+// getCurrentPreset returns current preset index
+func getCurrentPreset(this js.Value, args []js.Value) interface{} {
+	if gameInstance != nil {
+		return gameInstance.currentPreset
+	}
+	return 0
+}
+
 func main() {
 	// Register JavaScript API
 	js.Global().Set("setParticleCount", js.FuncOf(setParticleCount))
@@ -1171,6 +1319,15 @@ func main() {
 	js.Global().Set("isSoundMuted", js.FuncOf(isSoundMuted))
 	js.Global().Set("toggleFullscreen", js.FuncOf(toggleFullscreen))
 	js.Global().Set("isFullscreen", js.FuncOf(isFullscreen))
+	// E-011 Mobile Experience APIs
+	js.Global().Set("setGyroGravity", js.FuncOf(setGyroGravity))
+	js.Global().Set("disableGyro", js.FuncOf(disableGyro))
+	js.Global().Set("setMultiTouchAttractors", js.FuncOf(setMultiTouchAttractors))
+	js.Global().Set("resetParticles", js.FuncOf(resetParticles))
+	js.Global().Set("nextPreset", js.FuncOf(nextPresetJS))
+	js.Global().Set("prevPreset", js.FuncOf(prevPresetJS))
+	js.Global().Set("setCanvasSize", js.FuncOf(setCanvasSize))
+	js.Global().Set("getCurrentPreset", js.FuncOf(getCurrentPreset))
 
 	// Set fixed window size for WASM - CSS controls actual display
 	ebiten.SetWindowSize(screenWidth, screenHeight)

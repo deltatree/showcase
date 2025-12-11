@@ -5,18 +5,18 @@ workflowType: 'epics-stories'
 lastStep: 5
 project_name: 'showcase'
 user_name: 'Deltatree'
-date: '2025-12-10'
+date: '2025-12-11'
 yolo_mode: true
-totalEpics: 9
-totalStories: 43
-estimatedSprints: 6
+totalEpics: 11
+totalStories: 60
+estimatedSprints: 9
 ---
 
 # Epics & User Stories - Particle Symphony
 
 **Autor:** Deltatree  
-**Datum:** 10. Dezember 2025  
-**Status:** Finalisiert (YOLO MODE)  
+**Datum:** 11. Dezember 2025  
+**Status:** Finalisiert (YOLO MODE 🔥)  
 **Quelle:** PRD + Architecture Document
 
 ---
@@ -25,10 +25,10 @@ estimatedSprints: 6
 
 | Metrik | Wert |
 |--------|------|
-| **Epics** | 9 |
-| **User Stories** | 43 |
-| **Story Points (geschätzt)** | 159 |
-| **Sprints (geschätzt)** | 6 |
+| **Epics** | 11 |
+| **User Stories** | 60 |
+| **Story Points (geschätzt)** | 243 |
+| **Sprints (geschätzt)** | 9 |
 
 ### Epic-Übersicht
 
@@ -43,6 +43,8 @@ estimatedSprints: 6
 | E-007 | Web Deployment (WASM) | 4 | 13 | 🔴 MUST | ✅ Complete |
 | E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST | 🔄 In Progress |
 | E-009 | Premium Experience 🔥 | 8 | 32 | 🟡 SHOULD | ✅ 7/8 Complete |
+| E-010 | UI-Testsuite (Playwright) 🎭 | 8 | 32 | 🔴 MUST | ✅ Complete |
+| **E-011** | **Mobile Experience 📱🔥** | **9** | **52** | **🔴 MUST** | **✅ Complete** |
 
 ---
 
@@ -1643,6 +1645,777 @@ The project has been actively developed and maintained, with comprehensive docum
 
 ---
 
+# Epic E-010: UI-Testsuite (Playwright) 🎭
+
+**Beschreibung:** Vollständige End-to-End UI-Testsuite mit Playwright für 100% Testabdeckung der Web-Anwendung. Automatisierte Tests für alle Interaktionen, visuelle Regressionen und Cross-Browser-Kompatibilität.
+
+**Business Value:** Qualitätssicherung ist essentiell für ein Awesome-Go Projekt. Eine robuste Testsuite verhindert Regressionen, dokumentiert das erwartete Verhalten und gibt Vertrauen bei Refactorings. 100% Coverage zeigt professionelle Softwareentwicklung.
+
+**Warum Playwright?**
+- 🎯 Canvas & WebGL Support für WASM-basierte Partikel-Simulation
+- 🌐 Cross-Browser Testing (Chromium, Firefox, WebKit)
+- 📸 Eingebautes Visual Regression Testing
+- ⚡ Schnell und zuverlässig durch Auto-Wait-Mechanismen
+- 🔧 TypeScript/JavaScript native - perfekt für Web-Testing
+
+**Akzeptanzkriterien:**
+- Playwright Test-Framework ist vollständig eingerichtet
+- Alle UI-Interaktionen sind getestet (Maus, Tastatur, Touch)
+- Visual Regression Tests für alle Presets
+- Cross-Browser Tests laufen in CI/CD
+- 100% Testabdeckung der UI-Funktionalität
+- Test-Reports werden automatisch generiert
+
+---
+
+## Story E-010-S01: Playwright Setup & Konfiguration
+
+**Als** Entwickler  
+**möchte ich** ein vollständig konfiguriertes Playwright Setup  
+**damit** ich sofort mit dem Schreiben von Tests beginnen kann
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] `package.json` mit Playwright Dependencies erstellt
+- [ ] `playwright.config.ts` mit optimaler Konfiguration
+- [ ] Test-Ordnerstruktur unter `e2e/` angelegt
+- [ ] Base-URL auf lokalen Dev-Server konfiguriert
+- [ ] Screenshots & Videos bei Fehlern aktiviert
+- [ ] HTML-Reporter konfiguriert
+
+**Technische Details:**
+```bash
+# Installation
+npm init playwright@latest
+
+# Ordnerstruktur
+e2e/
+├── tests/
+│   ├── startup.spec.ts
+│   ├── presets.spec.ts
+│   ├── interactions.spec.ts
+│   └── visual-regression.spec.ts
+├── fixtures/
+│   └── test-fixtures.ts
+├── pages/
+│   └── particle-symphony.page.ts
+└── playwright.config.ts
+```
+
+**playwright.config.ts:**
+```typescript
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './e2e/tests',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: [['html'], ['json', { outputFile: 'test-results.json' }]],
+  use: {
+    baseURL: 'http://localhost:8080',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
+  webServer: {
+    command: 'python3 -m http.server 8080 --directory web',
+    url: 'http://localhost:8080',
+    reuseExistingServer: !process.env.CI,
+  },
+});
+```
+
+**Definition of Done:**
+- [ ] `npm test` startet Playwright Tests
+- [ ] Alle 3 Browser-Engines funktionieren
+- [ ] CI-ready Konfiguration
+
+---
+
+## Story E-010-S02: Page Object Model für Particle Symphony
+
+**Als** Entwickler  
+**möchte ich** ein wartbares Page Object Model  
+**damit** Tests lesbar und maintainable sind
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] `ParticleSymphonyPage` Klasse mit allen Selektoren
+- [ ] Helper-Methoden für alle Interaktionen
+- [ ] Canvas-Referenz für Screenshot-Vergleiche
+- [ ] Keyboard-Shortcut Helper
+- [ ] Mouse-Interaktion Helper
+- [ ] Warte-Methoden für WASM-Laden
+
+**Technische Details:**
+```typescript
+// e2e/pages/particle-symphony.page.ts
+import { Page, Locator, expect } from '@playwright/test';
+
+export class ParticleSymphonyPage {
+  readonly page: Page;
+  readonly canvas: Locator;
+  
+  constructor(page: Page) {
+    this.page = page;
+    this.canvas = page.locator('canvas');
+  }
+
+  async goto() {
+    await this.page.goto('/');
+    await this.waitForWasmLoad();
+  }
+
+  async waitForWasmLoad() {
+    await this.canvas.waitFor({ state: 'visible' });
+    await this.page.waitForFunction(() => {
+      return (window as any).wasmReady === true;
+    }, { timeout: 10000 });
+  }
+
+  async switchPreset(preset: 1 | 2 | 3 | 4 | 5) {
+    await this.page.keyboard.press(`Digit${preset}`);
+    await this.page.waitForTimeout(500);
+  }
+
+  async toggleDebugOverlay() {
+    await this.page.keyboard.press('F3');
+  }
+
+  async toggleGlow() {
+    await this.page.keyboard.press('F5');
+  }
+
+  async clickCanvas(x: number, y: number, button: 'left' | 'right' = 'left') {
+    await this.canvas.click({ position: { x, y }, button });
+  }
+
+  async dragOnCanvas(from: {x: number, y: number}, to: {x: number, y: number}) {
+    await this.page.mouse.move(from.x, from.y);
+    await this.page.mouse.down();
+    await this.page.mouse.move(to.x, to.y, { steps: 10 });
+    await this.page.mouse.up();
+  }
+
+  async getCanvasSnapshot() {
+    return await this.canvas.screenshot();
+  }
+}
+```
+
+**Definition of Done:**
+- [ ] Alle UI-Elemente haben Locators
+- [ ] Alle Aktionen haben Helper-Methoden
+- [ ] WASM-Wait funktioniert zuverlässig
+
+---
+
+## Story E-010-S03: Startup & Initialisierungs-Tests
+
+**Als** Benutzer  
+**möchte ich** dass die Anwendung zuverlässig startet  
+**damit** ich sofort mit der Simulation interagieren kann
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] Test: WASM lädt erfolgreich
+- [ ] Test: Canvas wird korrekt gerendert
+- [ ] Test: Default-Preset (Galaxy) ist aktiv
+- [ ] Test: Keine Konsolen-Errors beim Start
+- [ ] Test: Fenster hat korrekte Größe
+- [ ] Test: FPS ist stabil (>30 FPS initial)
+
+**Technische Details:**
+```typescript
+// e2e/tests/startup.spec.ts
+import { test, expect } from '@playwright/test';
+import { ParticleSymphonyPage } from '../pages/particle-symphony.page';
+
+test.describe('Application Startup', () => {
+  test('should load WASM successfully', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    const wasmReady = await page.evaluate(() => (window as any).wasmReady);
+    expect(wasmReady).toBe(true);
+  });
+
+  test('should render canvas', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    await expect(psp.canvas).toBeVisible();
+    const box = await psp.canvas.boundingBox();
+    expect(box?.width).toBeGreaterThan(800);
+    expect(box?.height).toBeGreaterThan(600);
+  });
+
+  test('should have no console errors', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+    
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(2000);
+    
+    expect(errors).toHaveLength(0);
+  });
+
+  test('should start with Galaxy preset', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    const screenshot = await psp.getCanvasSnapshot();
+    expect(screenshot).toMatchSnapshot('galaxy-initial.png', { threshold: 0.3 });
+  });
+});
+```
+
+**Definition of Done:**
+- [ ] Alle 6 Tests bestehen
+- [ ] Tests sind stabil (keine Flaky Tests)
+- [ ] Baseline Screenshots erstellt
+
+---
+
+## Story E-010-S04: Preset-Wechsel Tests
+
+**Als** Benutzer  
+**möchte ich** dass alle Presets korrekt funktionieren  
+**damit** ich verschiedene Simulationen erleben kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Test: Preset 1 (Galaxy) aktivierbar
+- [ ] Test: Preset 2 (Firework) aktivierbar
+- [ ] Test: Preset 3 (Swarm) aktivierbar
+- [ ] Test: Preset 4 (Fountain) aktivierbar
+- [ ] Test: Preset 5 (Chaos) aktivierbar
+- [ ] Test: Jedes Preset hat einzigartige visuelle Signatur
+- [ ] Test: Preset-Wechsel ist smooth (keine Crashes)
+- [ ] Test: Schnelles Preset-Wechseln funktioniert
+
+**Technische Details:**
+```typescript
+// e2e/tests/presets.spec.ts
+import { test, expect } from '@playwright/test';
+import { ParticleSymphonyPage } from '../pages/particle-symphony.page';
+
+test.describe('Preset Switching', () => {
+  const presets = [
+    { key: 1, name: 'galaxy' },
+    { key: 2, name: 'firework' },
+    { key: 3, name: 'swarm' },
+    { key: 4, name: 'fountain' },
+    { key: 5, name: 'chaos' },
+  ] as const;
+
+  for (const preset of presets) {
+    test(`should switch to ${preset.name} preset`, async ({ page }) => {
+      const psp = new ParticleSymphonyPage(page);
+      await psp.goto();
+      
+      await psp.switchPreset(preset.key);
+      await page.waitForTimeout(1000);
+      
+      const screenshot = await psp.getCanvasSnapshot();
+      expect(screenshot).toMatchSnapshot(`${preset.name}-preset.png`, { 
+        threshold: 0.4
+      });
+    });
+  }
+
+  test('should handle rapid preset switching', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    for (let i = 0; i < 3; i++) {
+      for (const preset of presets) {
+        await psp.switchPreset(preset.key);
+        await page.waitForTimeout(200);
+      }
+    }
+    
+    const wasmReady = await page.evaluate(() => (window as any).wasmReady);
+    expect(wasmReady).toBe(true);
+  });
+
+  test('presets should have distinct visual signatures', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    const screenshots: Buffer[] = [];
+    for (const preset of presets) {
+      await psp.switchPreset(preset.key);
+      await page.waitForTimeout(1000);
+      screenshots.push(await psp.getCanvasSnapshot());
+    }
+    
+    for (let i = 0; i < screenshots.length; i++) {
+      for (let j = i + 1; j < screenshots.length; j++) {
+        expect(screenshots[i]).not.toEqual(screenshots[j]);
+      }
+    }
+  });
+});
+```
+
+**Definition of Done:**
+- [ ] Alle 7 Tests bestehen
+- [ ] Baseline-Screenshots für alle 5 Presets
+- [ ] Keine Flaky Tests
+
+---
+
+## Story E-010-S05: Interaktions-Tests (Maus & Tastatur)
+
+**Als** Benutzer  
+**möchte ich** dass alle Interaktionen zuverlässig funktionieren  
+**damit** ich die Simulation steuern kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Test: Linksklick erzeugt Anziehung
+- [ ] Test: Rechtsklick erzeugt Abstoßung
+- [ ] Test: Mausbewegung wird getrackt
+- [ ] Test: F3 toggled Debug-Overlay
+- [ ] Test: F5 toggled Glow-Effekt
+- [ ] Test: ESC schließt die Anwendung nicht im Browser
+- [ ] Test: Touch-Events funktionieren (Mobile-Simulation)
+
+**Technische Details:**
+```typescript
+// e2e/tests/interactions.spec.ts
+import { test, expect } from '@playwright/test';
+import { ParticleSymphonyPage } from '../pages/particle-symphony.page';
+
+test.describe('Mouse Interactions', () => {
+  test('left click should attract particles', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(2000);
+    
+    const before = await psp.getCanvasSnapshot();
+    await psp.clickCanvas(640, 360, 'left');
+    await page.waitForTimeout(1000);
+    const after = await psp.getCanvasSnapshot();
+    
+    expect(before).not.toEqual(after);
+  });
+
+  test('right click should repel particles', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(2000);
+    
+    await psp.clickCanvas(640, 360, 'right');
+    await page.waitForTimeout(500);
+    
+    const wasmReady = await page.evaluate(() => (window as any).wasmReady);
+    expect(wasmReady).toBe(true);
+  });
+
+  test('drag should create continuous attraction', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(2000);
+    
+    await psp.dragOnCanvas({ x: 200, y: 200 }, { x: 600, y: 400 });
+    await expect(psp.canvas).toBeVisible();
+  });
+});
+
+test.describe('Keyboard Interactions', () => {
+  test('F3 should toggle debug overlay', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    const before = await psp.getCanvasSnapshot();
+    await psp.toggleDebugOverlay();
+    await page.waitForTimeout(100);
+    const after = await psp.getCanvasSnapshot();
+    
+    expect(before).not.toEqual(after);
+  });
+
+  test('F5 should toggle glow effect', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    await psp.toggleGlow();
+    await page.waitForTimeout(500);
+    
+    const screenshot = await psp.getCanvasSnapshot();
+    expect(screenshot).toBeDefined();
+  });
+});
+
+test.describe('Touch Events (Mobile)', () => {
+  test.use({ hasTouch: true });
+
+  test('touch should work like left click', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    await page.touchscreen.tap(640, 360);
+    await page.waitForTimeout(500);
+    
+    await expect(psp.canvas).toBeVisible();
+  });
+});
+```
+
+**Definition of Done:**
+- [ ] Alle 7 Tests bestehen
+- [ ] Mouse-Events werden korrekt simuliert
+- [ ] Touch-Tests funktionieren
+
+---
+
+## Story E-010-S06: Visual Regression Testing
+
+**Als** Entwickler  
+**möchte ich** visuelle Änderungen automatisch erkennen  
+**damit** ich keine unbeabsichtigten UI-Regressionen einführe
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Baseline-Screenshots für alle wichtigen Zustände
+- [ ] Pixel-Differenz-Toleranz für dynamische Elemente
+- [ ] Screenshot-Vergleich bei jedem Test-Run
+- [ ] Diff-Bilder bei Fehlern generiert
+- [ ] Masking für hochdynamische Bereiche
+- [ ] Snapshot-Update-Workflow dokumentiert
+
+**Technische Details:**
+```typescript
+// e2e/tests/visual-regression.spec.ts
+import { test, expect } from '@playwright/test';
+import { ParticleSymphonyPage } from '../pages/particle-symphony.page';
+
+test.describe('Visual Regression Tests', () => {
+  test.describe.configure({ retries: 0 });
+
+  test('initial page load appearance', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(500);
+    
+    await expect(page).toHaveScreenshot('initial-load.png', {
+      mask: [psp.canvas],
+      threshold: 0.1,
+    });
+  });
+
+  test('debug overlay appearance', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await psp.toggleDebugOverlay();
+    await page.waitForTimeout(200);
+    
+    await expect(page).toHaveScreenshot('debug-overlay.png', {
+      clip: { x: 0, y: 0, width: 300, height: 150 },
+      threshold: 0.2,
+    });
+  });
+
+  test('canvas renders particles', async ({ page }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(3000);
+    
+    const screenshot = await psp.getCanvasSnapshot();
+    const pixelData = screenshot.toString('base64');
+    expect(pixelData.length).toBeGreaterThan(1000);
+  });
+
+  const colorTests = [
+    { preset: 1 as const, name: 'galaxy' },
+    { preset: 2 as const, name: 'firework' },
+    { preset: 3 as const, name: 'swarm' },
+    { preset: 4 as const, name: 'fountain' },
+    { preset: 5 as const, name: 'chaos' },
+  ];
+
+  for (const { preset, name } of colorTests) {
+    test(`${name} preset has correct visual style`, async ({ page }) => {
+      const psp = new ParticleSymphonyPage(page);
+      await psp.goto();
+      await psp.switchPreset(preset);
+      await page.waitForTimeout(2000);
+      
+      const screenshot = await psp.getCanvasSnapshot();
+      expect(screenshot).toMatchSnapshot(`visual-${name}.png`, {
+        threshold: 0.5,
+        maxDiffPixelRatio: 0.3,
+      });
+    });
+  }
+});
+```
+
+**Snapshot-Update-Workflow:**
+```bash
+npx playwright test --update-snapshots
+npx playwright test --update-snapshots --last-failed
+```
+
+**Definition of Done:**
+- [ ] Alle Baseline-Screenshots erstellt
+- [ ] Diff-Bilder werden bei Fehlern generiert
+- [ ] Dokumentation für Snapshot-Update
+
+---
+
+## Story E-010-S07: Cross-Browser Testing
+
+**Als** Benutzer  
+**möchte ich** dass die Anwendung in allen Browsern funktioniert  
+**damit** ich meinen bevorzugten Browser nutzen kann
+
+**Story Points:** 4
+
+**Akzeptanzkriterien:**
+- [ ] Tests laufen in Chromium
+- [ ] Tests laufen in Firefox
+- [ ] Tests laufen in WebKit (Safari)
+- [ ] WASM lädt in allen Browsern
+- [ ] Canvas rendert korrekt in allen Browsern
+- [ ] Keyboard-Events funktionieren in allen Browsern
+- [ ] Performance ist akzeptabel (>30 FPS)
+
+**Technische Details:**
+```typescript
+// e2e/tests/cross-browser.spec.ts
+import { test, expect } from '@playwright/test';
+import { ParticleSymphonyPage } from '../pages/particle-symphony.page';
+
+test.describe('Cross-Browser Compatibility', () => {
+  test('WASM loads correctly', async ({ page, browserName }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    const wasmReady = await page.evaluate(() => (window as any).wasmReady);
+    expect(wasmReady).toBe(true);
+    console.log(`✓ WASM loaded in ${browserName}`);
+  });
+
+  test('canvas renders in all browsers', async ({ page, browserName }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    await page.waitForTimeout(2000);
+    
+    const screenshot = await psp.getCanvasSnapshot();
+    expect(screenshot).toBeDefined();
+    expect(screenshot.length).toBeGreaterThan(0);
+    console.log(`✓ Canvas renders in ${browserName}`);
+  });
+
+  test('keyboard shortcuts work', async ({ page, browserName }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    for (let i = 1; i <= 5; i++) {
+      await psp.switchPreset(i as 1 | 2 | 3 | 4 | 5);
+      await page.waitForTimeout(200);
+    }
+    
+    await psp.toggleDebugOverlay();
+    await psp.toggleGlow();
+    console.log(`✓ Keyboard works in ${browserName}`);
+  });
+
+  test('mouse interactions work', async ({ page, browserName }) => {
+    const psp = new ParticleSymphonyPage(page);
+    await psp.goto();
+    
+    await psp.clickCanvas(640, 360, 'left');
+    await psp.clickCanvas(640, 360, 'right');
+    
+    await expect(psp.canvas).toBeVisible();
+    console.log(`✓ Mouse works in ${browserName}`);
+  });
+});
+```
+
+**Browser-Matrix:**
+| Feature | Chromium | Firefox | WebKit |
+|---------|----------|---------|--------|
+| WASM | ✅ | ✅ | ✅ |
+| Canvas | ✅ | ✅ | ✅ |
+| Keyboard | ✅ | ✅ | ✅ |
+| Mouse | ✅ | ✅ | ✅ |
+
+**Definition of Done:**
+- [ ] Alle Tests bestehen in 3 Browsern
+- [ ] Browser-Matrix dokumentiert
+- [ ] Keine browser-spezifischen Bugs
+
+---
+
+## Story E-010-S08: CI/CD Integration & 100% Coverage
+
+**Als** Entwickler  
+**möchte ich** dass UI-Tests automatisch in CI/CD laufen  
+**damit** keine Regressionen in Production gelangen
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] GitHub Actions Workflow für Playwright
+- [ ] Tests laufen bei jedem PR
+- [ ] Test-Report wird als Artifact hochgeladen
+- [ ] Fehlgeschlagene Tests blockieren Merge
+- [ ] Coverage-Report zeigt 100% UI-Funktionalität
+- [ ] Parallel-Execution für schnelle Durchläufe
+
+**Technische Details:**
+```yaml
+# .github/workflows/playwright.yml
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+        
+      - name: Build WASM
+        run: |
+          cd cmd/wasm
+          GOOS=js GOARCH=wasm go build -o ../../web/particle-symphony.wasm .
+          
+      - name: Run Playwright tests
+        run: npx playwright test
+        
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+          
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
+```
+
+**Coverage Summary - 100% UI-Funktionalität:**
+```
+✅ Startup (3/3): WASM, Canvas, Default-Preset
+✅ Presets (5/5): Galaxy, Firework, Swarm, Fountain, Chaos  
+✅ Keyboard (7/7): 1-5, F3, F5
+✅ Mouse (3/3): Left, Right, Drag
+✅ Touch (1/1): Tap
+✅ Browser (3/3): Chromium, Firefox, WebKit
+✅ Visual (8/8): Initial + Debug + 5 Presets + Particles
+
+TOTAL: 30/30 Features = 100% ✅
+```
+
+**Definition of Done:**
+- [ ] GitHub Actions läuft erfolgreich
+- [ ] Report wird hochgeladen
+- [ ] 100% Coverage dokumentiert
+- [ ] PRs werden blockiert bei Fehlern
+
+---
+
+# Sprint 7: UI-Testsuite (Woche 7 - NEU)
+
+| Story | Epic | Points | Priorität |
+|-------|------|--------|-----------|
+| E-010-S01 | Playwright | 3 | 🔴 |
+| E-010-S02 | Playwright | 4 | 🔴 |
+| E-010-S03 | Playwright | 3 | 🔴 |
+| E-010-S04 | Playwright | 5 | 🔴 |
+| E-010-S05 | Playwright | 5 | 🔴 |
+| E-010-S06 | Playwright | 5 | 🔴 |
+| E-010-S07 | Playwright | 4 | 🔴 |
+| E-010-S08 | Playwright | 3 | 🔴 |
+| **Total** | | **32** | |
+
+**Sprint Goal:** Die Particle Symphony hat eine vollständige UI-Testsuite mit 100% Coverage. Jede Regression wird sofort erkannt, jeder PR ist abgesichert.
+
+---
+
+# E-010 Dependency Graph
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 UI-TESTSUITE (PLAYWRIGHT) DEPENDENCIES          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  E-007 (WASM Deployment) ───────────────────┐                   │
+│                                              │                   │
+│                                              ▼                   │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  E-010-S01 (Setup & Konfiguration)                        │  │
+│  │       │                                                   │  │
+│  │       ▼                                                   │  │
+│  │  E-010-S02 (Page Object Model)                            │  │
+│  │       │                                                   │  │
+│  │       ├──────────────┬──────────────┬──────────────┐      │  │
+│  │       │              │              │              │      │  │
+│  │       ▼              ▼              ▼              ▼      │  │
+│  │  E-010-S03      E-010-S04      E-010-S05      E-010-S06   │  │
+│  │  (Startup)      (Presets)     (Interact)     (Visual)    │  │
+│  │       │              │              │              │      │  │
+│  │       └──────────────┴──────────────┴──────────────┘      │  │
+│  │                          │                                │  │
+│  │                          ▼                                │  │
+│  │                    E-010-S07                              │  │
+│  │               (Cross-Browser)                             │  │
+│  │                          │                                │  │
+│  │                          ▼                                │  │
+│  │                    E-010-S08                              │  │
+│  │               (CI/CD Integration)                         │  │
+│  │                          │                                │  │
+│  └──────────────────────────┼────────────────────────────────┘  │
+│                             ▼                                   │
+│                   🎭 100% UI COVERAGE                           │
+│            "Keine Regression bleibt unentdeckt"                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 # Aktualisierte Übersicht
 
 | Metrik | Wert |
@@ -2360,10 +3133,10 @@ async function loadAmbientSound(preset) {
 
 | Metrik | Vorher | Nachher |
 |--------|--------|---------|
-| **Epics** | 8 | 9 |
-| **User Stories** | 35 | 43 |
-| **Story Points** | 127 | 159 |
-| **Sprints** | 5 | 6 |
+| **Epics** | 10 | 11 |
+| **User Stories** | 51 | 60 |
+| **Story Points** | 191 | 243 |
+| **Sprints** | 7 | 9 |
 
 ### Epic-Übersicht (Final)
 
@@ -2372,14 +3145,431 @@ async function loadAmbientSound(preset) {
 | E-001 | ECS Foundation | 5 | 18 | 🔴 MUST | ✅ |
 | E-002 | Physik-Engine | 4 | 15 | 🔴 MUST | ✅ |
 | E-003 | Interaktivität | 4 | 13 | 🔴 MUST | ✅ |
-| E-004 | Visual Effects | 4 | 16 | 🟡 SHOULD | 🔄 |
+| E-004 | Visual Effects | 4 | 16 | 🟡 SHOULD | ✅ |
 | E-005 | Preset-System | 4 | 13 | 🟡 SHOULD | ✅ |
 | E-006 | Audio-Reaktivität | 3 | 14 | 🟢 COULD | 📋 |
 | E-007 | Web Deployment | 4 | 13 | 🔴 MUST | ✅ |
 | E-008 | Awesome-Go Listing | 7 | 25 | 🔴 MUST | ✅ ⏳ |
-| **E-009** | **Premium Experience 🔥** | **8** | **32** | **🟡 SHOULD** | **📋 NEU** |
+| E-009 | Premium Experience 🔥 | 8 | 32 | 🟡 SHOULD | ✅ |
+| E-010 | UI-Testsuite (Playwright) 🎭 | 8 | 32 | 🔴 MUST | ✅ |
+| **E-011** | **Mobile Experience 📱🔥** | **9** | **52** | **🔴 MUST** | **📋 NEU** |
 
 **Legende:** ✅ Done | 🔄 In Progress | 📋 Backlog | ⏳ Waiting (5-Monate-Regel)
+
+---
+
+# Epic E-011: Mobile Experience 📱🔥
+
+**Beschreibung:** Vollständige Mobile-Optimierung für "abgefahren geile" User Experience auf allen mobilen Endgeräten - von Touch-Interaktion bis Gyroscope-Integration.
+
+**Business Value:** Mobile ist DER Touchpoint 2025. WebAssembly läuft bereits im Browser (E-007), jetzt machen wir die UX LEGENDÄR! Touch + Partikel = MAGIC ✨
+
+**Akzeptanzkriterien:**
+- Responsive Canvas auf allen Screen-Sizes (iPhone SE bis iPad Pro)
+- Touch-optimierte Multi-Touch-Interaktion
+- 60 FPS auf High-End Mobile (30 FPS Fallback auf älteren Geräten)
+- PWA-Support mit Homescreen-Icon
+- Haptic Feedback für immersive Experience
+- Optional: Gyroscope/Accelerometer-Integration
+
+---
+
+## Story E-011-S01: Responsive Canvas & Viewport
+
+**Als** mobiler Benutzer  
+**möchte ich** dass der Canvas sich perfekt an mein Display anpasst  
+**damit** ich das volle Screen-Erlebnis habe
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Canvas skaliert auf alle Viewport-Größen (320px - 1024px+)
+- [ ] Viewport Meta-Tag verhindert Zoom-Probleme
+- [ ] Canvas nutzt `devicePixelRatio` für Retina-Displays
+- [ ] Orientation-Change wird erkannt und gehandelt
+- [ ] Fullscreen-Mode auf Mobile verfügbar
+- [ ] Safe-Area-Insets für iPhone Notch berücksichtigt
+
+**Technische Details:**
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+```
+```javascript
+function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    canvas.style.width = window.innerWidth + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', resizeCanvas);
+```
+
+**Definition of Done:**
+- [ ] iPhone SE, iPhone 14 Pro, iPad getestet
+- [ ] Android Pixel, Samsung Galaxy getestet
+- [ ] Keine Scrollbars, kein Bounce-Effekt
+
+---
+
+## Story E-011-S02: Touch-Event Handling
+
+**Als** mobiler Benutzer  
+**möchte ich** durch Tippen und Wischen mit den Partikeln interagieren  
+**damit** ich die Simulation mit meinen Fingern steuern kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Touch-Start ersetzt Mouse-Down (Attraktor aktivieren)
+- [ ] Touch-Move ersetzt Mouse-Move (Attraktor-Position)
+- [ ] Touch-End ersetzt Mouse-Up (Attraktor deaktivieren)
+- [ ] Touch-Events werden korrekt in Canvas-Koordinaten transformiert
+- [ ] Keine 300ms Click-Delay auf Mobile
+- [ ] Passive Event Listeners für Performance
+
+**Technische Details:**
+```javascript
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+    activateAttractor(x, y, 500); // Positive mass
+}, { passive: false });
+```
+
+**Definition of Done:**
+- [ ] Single-Touch funktioniert wie Mausklick
+- [ ] Keine ungewollten Browser-Gesten (Refresh, Back)
+
+---
+
+## Story E-011-S03: Multi-Touch Attraktoren 🔥
+
+**Als** mobiler Benutzer  
+**möchte ich** mit mehreren Fingern gleichzeitig mehrere Attraktoren erstellen  
+**damit** ich komplexe Partikel-Muster kreieren kann
+
+**Story Points:** 8
+
+**Akzeptanzkriterien:**
+- [ ] Bis zu 5 gleichzeitige Touch-Points werden erkannt
+- [ ] Jeder Touch-Point erzeugt einen eigenen Attraktor
+- [ ] Attraktoren haben unterschiedliche Farben (visuelles Feedback)
+- [ ] Touch-Hold (>500ms) wechselt zwischen Anziehung/Abstoßung
+- [ ] Pinch-Geste (2 Finger) ändert globale Partikel-Größe
+- [ ] Rotation-Geste (2 Finger) dreht Partikel-Bewegungsrichtung
+
+**Technische Details:**
+```javascript
+const activeAttractors = new Map(); // touchId -> attractorEntity
+
+canvas.addEventListener('touchstart', (e) => {
+    for (const touch of e.changedTouches) {
+        const attractor = createAttractor(touch.clientX, touch.clientY);
+        activeAttractors.set(touch.identifier, attractor);
+    }
+}, { passive: false });
+
+canvas.addEventListener('touchend', (e) => {
+    for (const touch of e.changedTouches) {
+        const attractor = activeAttractors.get(touch.identifier);
+        if (attractor) removeAttractor(attractor);
+        activeAttractors.delete(touch.identifier);
+    }
+});
+```
+
+**Definition of Done:**
+- [ ] 5 Finger = 5 Attraktoren gleichzeitig
+- [ ] Pinch-to-Scale funktioniert
+- [ ] Visual Feedback für jeden Touch-Point
+
+---
+
+## Story E-011-S04: Mobile Performance Optimierung
+
+**Als** mobiler Benutzer  
+**möchte ich** eine flüssige 60 FPS Experience  
+**damit** die Animation nicht ruckelt
+
+**Story Points:** 8
+
+**Akzeptanzkriterien:**
+- [ ] Automatische Partikel-Anzahl-Reduzierung auf schwachen Geräten
+- [ ] FPS-Detection bei Start (Benchmark)
+- [ ] Quality-Presets: Low (1000 Partikel), Medium (5000), High (10000)
+- [ ] GPU-Memory-Monitoring (falls verfügbar)
+- [ ] Battery-Saver-Mode: Reduzierte Effekte bei niedrigem Akku
+- [ ] requestAnimationFrame statt setInterval
+
+**Technische Details:**
+```javascript
+function detectPerformanceTier() {
+    const cores = navigator.hardwareConcurrency || 2;
+    const memory = navigator.deviceMemory || 2;
+    
+    if (cores >= 8 && memory >= 8) return 'high';
+    if (cores >= 4 && memory >= 4) return 'medium';
+    return 'low';
+}
+
+const PARTICLE_LIMITS = { low: 1000, medium: 5000, high: 10000 };
+```
+
+**Definition of Done:**
+- [ ] 60 FPS auf iPhone 12+, Pixel 6+
+- [ ] 30 FPS auf älteren Geräten (akzeptabel)
+- [ ] Kein Thermal Throttling nach 5 Minuten
+
+---
+
+## Story E-011-S05: PWA - Progressive Web App
+
+**Als** mobiler Benutzer  
+**möchte ich** die App auf meinem Homescreen installieren  
+**damit** ich sie wie eine native App starten kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Web App Manifest (`manifest.json`) vorhanden
+- [ ] App-Icons in allen Größen (72, 96, 128, 144, 152, 192, 384, 512)
+- [ ] Service Worker für Offline-Caching
+- [ ] Splash-Screen beim App-Start
+- [ ] Standalone Display-Mode (keine Browser-UI)
+- [ ] "Add to Homescreen" Prompt auf Mobile
+
+**Technische Details:**
+```json
+{
+    "name": "Particle Symphony",
+    "short_name": "Particles",
+    "description": "Interactive WebAssembly Particle Simulation",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#FF6B00",
+    "icons": [
+        { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+}
+```
+
+**Definition of Done:**
+- [ ] Lighthouse PWA-Score > 90
+- [ ] Installation auf iOS Safari funktioniert
+- [ ] Installation auf Android Chrome funktioniert
+
+---
+
+## Story E-011-S06: Haptic Feedback 📳
+
+**Als** mobiler Benutzer  
+**möchte ich** haptisches Feedback beim Interagieren  
+**damit** ich die Partikel "fühlen" kann
+
+**Story Points:** 3
+
+**Akzeptanzkriterien:**
+- [ ] Vibration bei Touch-Start (kurzer Puls)
+- [ ] Vibration bei Attraktor-Wechsel (Anziehung ↔ Abstoßung)
+- [ ] Rhythmische Vibration bei hoher Partikel-Dichte am Finger
+- [ ] Vibration bei Preset-Wechsel (Pattern)
+- [ ] Vibration kann in Settings deaktiviert werden
+- [ ] Fallback: Keine Vibration wenn nicht unterstützt
+
+**Technische Details:**
+```javascript
+function hapticFeedback(type) {
+    if (!navigator.vibrate) return;
+    
+    const patterns = {
+        tap: [10],
+        attract: [20, 50, 20],
+        repel: [50],
+        preset: [30, 30, 30, 30, 30],
+        density: [5, 10, 5, 10, 5]
+    };
+    
+    navigator.vibrate(patterns[type] || [10]);
+}
+```
+
+**Definition of Done:**
+- [ ] Vibration spürbar auf Android
+- [ ] iOS: Fallback zu Web Audio "click"
+- [ ] Setting zum Deaktivieren
+
+---
+
+## Story E-011-S07: Gyroscope & Accelerometer Integration 🎮
+
+**Als** mobiler Benutzer  
+**möchte ich** mein Handy kippen um die Gravitation zu beeinflussen  
+**damit** die Partikel wie in einem echten Sandkasten reagieren
+
+**Story Points:** 8
+
+**Akzeptanzkriterien:**
+- [ ] Device Orientation API wird genutzt
+- [ ] Kippen nach links/rechts beeinflusst X-Gravitation
+- [ ] Kippen nach vorne/hinten beeinflusst Y-Gravitation
+- [ ] Schütteln (Shake) resettet alle Partikel
+- [ ] Permission-Request für Sensor-Zugriff (iOS 13+)
+- [ ] Gyro-Mode togglebar via UI-Button
+- [ ] Sensitivity einstellbar
+
+**Technische Details:**
+```javascript
+// iOS 13+ requires permission
+async function requestMotionPermission() {
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        const permission = await DeviceMotionEvent.requestPermission();
+        return permission === 'granted';
+    }
+    return true; // Android doesn't need permission
+}
+
+window.addEventListener('deviceorientation', (e) => {
+    const gravityX = e.gamma / 90; // -1 to 1
+    const gravityY = e.beta / 90;  // -1 to 1
+    updateGlobalGravity(gravityX * 500, gravityY * 500);
+});
+
+// Shake detection
+let lastAcceleration = { x: 0, y: 0, z: 0 };
+window.addEventListener('devicemotion', (e) => {
+    const acc = e.accelerationIncludingGravity;
+    const delta = Math.abs(acc.x - lastAcceleration.x) + 
+                  Math.abs(acc.y - lastAcceleration.y) +
+                  Math.abs(acc.z - lastAcceleration.z);
+    if (delta > 30) resetParticles();
+    lastAcceleration = { x: acc.x, y: acc.y, z: acc.z };
+});
+```
+
+**Definition of Done:**
+- [ ] Kippen funktioniert auf iOS & Android
+- [ ] Shake-Reset funktioniert
+- [ ] Permission-Dialog erscheint auf iOS
+
+---
+
+## Story E-011-S08: Mobile UI/UX Polish ✨
+
+**Als** mobiler Benutzer  
+**möchte ich** eine intuitive und schöne Mobile-UI  
+**damit** ich alle Features einfach nutzen kann
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Preset-Wechsel via Swipe-Geste (links/rechts)
+- [ ] Floating Action Button für Settings-Menü
+- [ ] Bottom-Sheet für Settings (nicht Modal)
+- [ ] Touch-friendly Slider für Partikel-Anzahl
+- [ ] On-Screen Preset-Indicator mit Swipe-Hint
+- [ ] Fullscreen-Toggle Button
+- [ ] Dark-Mode Support (folgt System-Preference)
+
+**Technische Details:**
+```css
+/* Touch-friendly Controls */
+.fab-button {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    touch-action: manipulation;
+}
+
+.slider-control {
+    height: 44px; /* Apple HIG minimum */
+    padding: 12px;
+}
+
+/* Safe Areas */
+.controls-container {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+```
+
+**Definition of Done:**
+- [ ] Swipe-Wechsel zwischen 5 Presets
+- [ ] FAB öffnet Settings-Sheet
+- [ ] Alle Controls sind daumenfreundlich
+
+---
+
+## Story E-011-S09: Mobile E2E Tests (Playwright) 🎭
+
+**Als** Entwickler  
+**möchte ich** automatisierte Mobile-Tests  
+**damit** die Mobile-Experience nicht kaputt geht
+
+**Story Points:** 5
+
+**Akzeptanzkriterien:**
+- [ ] Playwright Mobile-Projekte konfiguriert (iPhone, Pixel)
+- [ ] Touch-Event Tests (tap, swipe, pinch)
+- [ ] Viewport-Resize Tests
+- [ ] Orientation-Change Tests
+- [ ] Performance-Budget Tests (FPS > 30)
+- [ ] Visual Regression auf Mobile Viewports
+
+**Technische Details:**
+```typescript
+// playwright.config.ts - Mobile Projects
+{
+    name: 'mobile-chrome',
+    use: { ...devices['Pixel 5'] },
+},
+{
+    name: 'mobile-safari',
+    use: { ...devices['iPhone 12'] },
+},
+{
+    name: 'tablet',
+    use: { ...devices['iPad Pro 11'] },
+},
+```
+
+**Definition of Done:**
+- [ ] Mobile-Tests in CI/CD integriert
+- [ ] Touch-Interaction Tests grün
+- [ ] Mobile Visual Regression Snapshots
+
+---
+
+## E-011 Zusammenfassung
+
+| Story | Titel | Punkte | Priorität | Status |
+|-------|-------|--------|-----------|--------|
+| E-011-S01 | Responsive Canvas & Viewport | 5 | 🔴 MUST | ✅ Complete |
+| E-011-S02 | Touch-Event Handling | 5 | 🔴 MUST | ✅ Complete |
+| E-011-S03 | Multi-Touch Attraktoren 🔥 | 8 | 🟡 SHOULD | ✅ Complete |
+| E-011-S04 | Mobile Performance Optimierung | 8 | 🔴 MUST | ✅ Complete |
+| E-011-S05 | PWA - Progressive Web App | 5 | 🟡 SHOULD | ✅ Complete |
+| E-011-S06 | Haptic Feedback 📳 | 3 | 🟢 COULD | ✅ Complete |
+| E-011-S07 | Gyroscope & Accelerometer 🎮 | 8 | 🟢 COULD | ✅ Complete |
+| E-011-S08 | Mobile UI/UX Polish ✨ | 5 | 🟡 SHOULD | ✅ Complete |
+| E-011-S09 | Mobile E2E Tests 🎭 | 5 | 🔴 MUST | ✅ Complete |
+| **TOTAL** | | **52** | | **✅ 9/9** |
+
+### Mobile Device Test Matrix
+
+| Device | OS | Screen | Status |
+|--------|-----|--------|--------|
+| iPhone SE (2022) | iOS 16+ | 375x667 | 📋 Planned |
+| iPhone 14 Pro | iOS 16+ | 393x852 | 📋 Planned |
+| iPhone 14 Pro Max | iOS 16+ | 430x932 | 📋 Planned |
+| iPad Pro 11" | iPadOS 16+ | 834x1194 | 📋 Planned |
+| Pixel 6 | Android 12+ | 411x915 | 📋 Planned |
+| Samsung Galaxy S22 | Android 12+ | 360x780 | 📋 Planned |
 
 ---
 
@@ -2391,6 +3581,6 @@ Die neue Epic E-009 ergänzt das Projekt um Premium-Features und steht nicht im 
 
 ---
 
-**🚀🔥 YOLO MODE COMPLETE - 43 STORIES READY FOR IMPLEMENTATION!**
+**🚀🔥 YOLO MODE COMPLETE - 60 STORIES READY FOR IMPLEMENTATION!**
 
-**🎵 Particle Symphony wird LEGENDÄR! 🎵**
+**📱 MOBILE EXPERIENCE WIRD ABGEFAHREN GEIL! Multi-Touch + Gyroscope + PWA = LEGENDÄR! 📱**

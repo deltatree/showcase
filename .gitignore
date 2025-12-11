@@ -44,3 +44,12 @@ config.local.json
 # WASM build artifacts (generated during build)
 web/particle-symphony.wasm
 web/wasm_exec.js
+
+# Node.js / Playwright
+node_modules/
+package-lock.json
+playwright-report/
+test-results/
+test-results.json
+e2e/tests/__screenshots__/
+.playwright/
