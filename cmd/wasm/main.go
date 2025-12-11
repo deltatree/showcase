@@ -890,10 +890,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, helpText, 10, screenHeight-20)
 	}
 
-	// Mobile UI: Touch buttons overlay
-	if g.isMobile {
-		g.drawMobileUI(screen)
-	}
+	// Mobile UI: Disabled - using JavaScript overlay instead (prettier with emojis)
+	// if g.isMobile {
+	// 	g.drawMobileUI(screen)
+	// }
 }
 
 func (g *Game) drawMobileUI(screen *ebiten.Image) {
@@ -1103,7 +1103,15 @@ func drawCircle(screen *ebiten.Image, cx, cy, radius float32, col color.RGBA) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	// Fixed logical size - Ebitengine handles coordinate transformation
+	// On mobile, use the actual browser viewport size for fullscreen
+	if g.isMobile && outsideWidth > 0 && outsideHeight > 0 {
+		// Update screen dimensions dynamically
+		if outsideWidth != screenWidth || outsideHeight != screenHeight {
+			screenWidth = outsideWidth
+			screenHeight = outsideHeight
+		}
+		return outsideWidth, outsideHeight
+	}
 	return screenWidth, screenHeight
 }
 

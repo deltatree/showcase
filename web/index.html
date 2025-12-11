@@ -89,9 +89,17 @@
             }
             
             #game-container canvas {
-                width: 100% !important;
-                height: 100% !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                height: 100dvh !important; /* iOS dynamic viewport */
+                object-fit: cover !important;
                 touch-action: none; /* Only on canvas, not body */
+            }
+            
+            /* Loading overlay fullscreen on mobile */
+            .loading-overlay {
+                min-width: 100vw !important;
+                min-height: 100vh !important;
             }
         }
         
