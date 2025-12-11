@@ -1331,22 +1331,53 @@
         ],
         holdTimers: new Map(),
         
-        getTouchPosition(touch, canvas) {
+        getTouchPosition(touch) {
+            const canvas = this.canvas || document.querySelector('canvas');
+            if (!canvas) return { x: 0, y: 0 };
+            
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            return {
-                x: (touch.clientX - rect.left) * scaleX,
-                y: (touch.clientY - rect.top) * scaleY
-            };
+            // CSS size (what user sees)
+            const cssWidth = rect.width;
+            const cssHeight = rect.height;
+            // Canvas internal size (what WASM uses) - use Ebitengine's logical size
+            // The canvas.width/height are the internal buffer size
+            // We need to map touch coords from CSS space to WASM logical space
+            const logicalWidth = canvas.width;
+            const logicalHeight = canvas.height;
+            
+            // Touch position relative to canvas in CSS pixels
+            const cssX = touch.clientX - rect.left;
+            const cssY = touch.clientY - rect.top;
+            
+            // Scale to logical/internal coordinates
+            const x = (cssX / cssWidth) * logicalWidth;
+            const y = (cssY / cssHeight) * logicalHeight;
+            
+            // Debug: log coordinates occasionally
+            if (Math.random() < 0.05) {
+                console.log('[Touch] CSS:', cssX.toFixed(0), cssY.toFixed(0), 
+                           'Logical:', x.toFixed(0), y.toFixed(0),
+                           'Canvas:', logicalWidth, 'x', logicalHeight,
+                           'CSS size:', cssWidth.toFixed(0), 'x', cssHeight.toFixed(0));
+            }
+            
+            return { x, y };
         },
         
         handleTouchStart(e) {
-            const canvas = e.target;
-            if (canvas.tagName !== 'CANVAS') return;
+            const canvas = this.canvas || document.querySelector('canvas');
+            if (!canvas) return;
+            
+            const rect = canvas.getBoundingClientRect();
             
             for (const touch of e.changedTouches) {
-                const pos = this.getTouchPosition(touch, canvas);
+                // Check if touch is within canvas bounds
+                if (touch.clientX < rect.left || touch.clientX > rect.right ||
+                    touch.clientY < rect.top || touch.clientY > rect.bottom) {
+                    continue;
+                }
+                
+                const pos = this.getTouchPosition(touch);
                 const colorIdx = this.attractors.size % this.colors.length;
                 
                 this.attractors.set(touch.identifier, {
@@ -1374,13 +1405,10 @@
         },
         
         handleTouchMove(e) {
-            const canvas = e.target;
-            if (canvas.tagName !== 'CANVAS') return;
-            
             for (const touch of e.changedTouches) {
                 const attractor = this.attractors.get(touch.identifier);
                 if (attractor) {
-                    const pos = this.getTouchPosition(touch, canvas);
+                    const pos = this.getTouchPosition(touch);
                     attractor.x = pos.x;
                     attractor.y = pos.y;
                 }
@@ -1416,25 +1444,58 @@
     function setupMultiTouch() {
         const canvas = document.querySelector('canvas');
         if (!canvas) {
+            console.log('[MultiTouch] Canvas not found, retrying...');
             setTimeout(setupMultiTouch, 100);
             return;
         }
         
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            MultiTouchManager.handleTouchStart(e);
-        }, { passive: false });
+        console.log('[MultiTouch] Canvas found:', canvas.width, 'x', canvas.height);
+        console.log('[MultiTouch] CSS size:', canvas.getBoundingClientRect().width.toFixed(0), 'x', canvas.getBoundingClientRect().height.toFixed(0));
         
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            MultiTouchManager.handleTouchMove(e);
-        }, { passive: false });
+        // Ensure canvas can receive touch events
+        canvas.style.touchAction = 'none';
         
-        canvas.addEventListener('touchend', (e) => {
+        // Store canvas reference for coordinate calculation
+        MultiTouchManager.canvas = canvas;
+        
+        // Use document-level touch handling for reliability on iOS
+        // This catches touches even when overlays are present
+        document.addEventListener('touchstart', (e) => {
+            // Check if touch is in canvas area
+            const rect = canvas.getBoundingClientRect();
+            let touchOnCanvas = false;
+            
+            for (const touch of e.touches) {
+                if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                    touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                    touchOnCanvas = true;
+                    break;
+                }
+            }
+            
+            if (touchOnCanvas) {
+                // Don't prevent default if touch is on a button
+                const target = e.target;
+                if (target.tagName !== 'BUTTON' && !target.classList.contains('mobile-preset-btn')) {
+                    e.preventDefault();
+                }
+                console.log('[MultiTouch] touchstart on canvas, touches:', e.touches.length);
+                MultiTouchManager.handleTouchStart(e);
+            }
+        }, { passive: false, capture: true });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (MultiTouchManager.attractors.size > 0) {
+                e.preventDefault();
+                MultiTouchManager.handleTouchMove(e);
+            }
+        }, { passive: false, capture: true });
+        
+        document.addEventListener('touchend', (e) => {
             MultiTouchManager.handleTouchEnd(e);
-        });
+        }, { passive: true });
         
-        canvas.addEventListener('touchcancel', (e) => {
+        document.addEventListener('touchcancel', (e) => {
             MultiTouchManager.handleTouchEnd(e);
         });
         
